@@ -46,5 +46,16 @@
     "description": "개발자라면 반드시 읽어야 할 소프트웨어 장인 정신과 코드 품질에 대한 지침서.",
     "image": "https://image.aladin.co.kr/product/3408/36/cover500/8966260950_2.jpg",
     "reason": "코드 품질 향상을 위한 필독서라 개발자용으로 등록."
+  },
+  {
+    "id": 1755680778287,
+    "title": "처음 시작하는 기독교강요",
+    "author": "김태희",
+    "publisher": "세움북스",
+    "category": "기독교, 개신교, 신학, 입문",
+    "level": "입문",
+    "buy_link": "https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=142319498&start=slayer",
+    "image": "https://image.aladin.co.kr/product/14231/94/cover500/k902532635_1.jpg",
+    "reason": "장 칼뱅의 <기독교강요>를 처음 읽고자하는 이들을 위한 입문서"
   }
 ]
