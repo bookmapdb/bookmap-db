@@ -7,26 +7,38 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
+
   <!-- 상단 네비게이션 -->
   <header class="bg-blue-600 text-white shadow">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
       <h1 class="text-xl font-bold">📚 BookMap</h1>
       <nav class="flex gap-6 text-sm">
-        <a href="index.html" class="hover:underline">홈</a>
+        <a href="index.html" class="hover:underline font-semibold">홈</a>
         <a href="form.html" class="hover:underline">도서 등록</a>
         <a href="book.html" class="hover:underline">북맵 리스트</a>
       </nav>
     </div>
   </header>
 
-  <!-- 메인 -->
-  <main class="max-w-3xl mx-auto px-6 py-16 text-center">
-    <h2 class="text-3xl font-bold mb-6">BookMap에 오신 것을 환영합니다</h2>
-    <p class="text-gray-600 mb-10">좋은 책들을 등록하고, 카테고리와 단계별로 탐색해보세요.</p>
-    <div class="flex justify-center gap-4">
-      <a href="form.html" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">도서 등록</a>
-      <a href="book.html" class="bg-gray-200 px-6 py-3 rounded-lg hover:bg-gray-300">북맵 리스트</a>
+  <!-- 메인 컨텐츠 -->
+  <main class="max-w-4xl mx-auto px-6 py-20 text-center">
+    <h2 class="text-3xl font-bold mb-6">북맵(BookMap)</h2>
+    <p class="text-lg text-gray-600 mb-10">
+      당신의 독서 경험을 통해, 많은 이들에게 독서 지도를 만들어주세요.<br/>
+      북맵은 단계별 · 주제별 독서 큐레이션을 제공하는 새로운 독서 네비게이션 서비스입니다.
+    </p>
+
+    <div class="flex justify-center gap-6">
+      <a href="form.html" 
+         class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+        도서 등록
+      </a>
+      <a href="book.html" 
+         class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+        북맵 리스트
+      </a>
     </div>
   </main>
+
 </body>
 </html>
