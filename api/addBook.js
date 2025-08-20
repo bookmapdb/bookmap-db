@@ -1,17 +1,11 @@
-import fetch from "node-fetch";
-
+// api/addBook.js
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "허용되지 않은 메소드" });
   }
 
   try {
-    const {
-      GITHUB_TOKEN,
-      REPO_OWNER,
-      REPO_NAME,
-      FILE_PATH,
-    } = process.env;
+    const { GITHUB_TOKEN, REPO_OWNER, REPO_NAME, FILE_PATH } = process.env;
 
     if (!GITHUB_TOKEN || !REPO_OWNER || !REPO_NAME || !FILE_PATH) {
       return res.status(500).json({ error: "환경변수가 설정되지 않았습니다." });
@@ -23,7 +17,7 @@ export default async function handler(req, res) {
     const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
     const getRes = await fetch(url, {
       headers: {
-        Authorization: `token ${GITHUB_TOKEN}`,
+        Authorization: `Bearer ${GITHUB_TOKEN}`, // ✅ 최신 GitHub API 권장 방식
         Accept: "application/vnd.github.v3+json",
       },
     });
@@ -41,11 +35,14 @@ export default async function handler(req, res) {
     books.push(newBook);
 
     // 3. GitHub에 업데이트
-    const updatedContent = Buffer.from(JSON.stringify(books, null, 2)).toString("base64");
+    const updatedContent = Buffer.from(
+      JSON.stringify(books, null, 2)
+    ).toString("base64");
+
     const putRes = await fetch(url, {
       method: "PUT",
       headers: {
-        Authorization: `token ${GITHUB_TOKEN}`,
+        Authorization: `Bearer ${GITHUB_TOKEN}`,
         Accept: "application/vnd.github.v3+json",
       },
       body: JSON.stringify({
