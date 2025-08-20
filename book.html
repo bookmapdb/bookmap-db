@@ -54,6 +54,120 @@
     </section>
   </main>
 
-  <script src="book.js"></script>
+  <!-- ✅ JS 통합 -->
+  <script>
+    // books.json 불러오기
+    async function fetchBooks() {
+      const res = await fetch("https://raw.githubusercontent.com/bookmapdb/bookmap-db/main/books.json");
+      return await res.json();
+    }
+
+    // 카테고리/단계 고유값 추출
+    function extractFilters(books) {
+      const categories = new Set();
+      const levels = new Set();
+
+      books.forEach(book => {
+        if (book.category) {
+          book.category.split(",").map(c => c.trim()).forEach(c => categories.add(c));
+        }
+        if (book.level) levels.add(book.level);
+      });
+
+      return {
+        categories: Array.from(categories),
+        levels: Array.from(levels)
+      };
+    }
+
+    // 필터 UI 생성
+    function renderFilters(filters) {
+      const categoryFilter = document.getElementById("categoryFilter");
+      const levelFilter = document.getElementById("levelFilter");
+
+      // 카테고리 체크박스
+      filters.categories.forEach(cat => {
+        const label = document.createElement("label");
+        label.className = "flex items-center gap-2 text-sm";
+        label.innerHTML = `<input type="checkbox" value="${cat}" class="categoryCheck"> ${cat}`;
+        categoryFilter.appendChild(label);
+      });
+
+      // 단계 체크박스
+      filters.levels.forEach(level => {
+        const label = document.createElement("label");
+        label.className = "flex items-center gap-2 text-sm";
+        label.innerHTML = `<input type="checkbox" value="${level}" class="levelCheck"> ${level}`;
+        levelFilter.appendChild(label);
+      });
+    }
+
+    // 도서 카드 렌더링
+    function renderBooks(books) {
+      const container = document.getElementById("bookList");
+      container.innerHTML = "";
+
+      if (books.length === 0) {
+        container.innerHTML = `<p class="text-gray-500">조건에 맞는 도서가 없습니다.</p>`;
+        return;
+      }
+
+      books.forEach(book => {
+        const card = document.createElement("div");
+        card.className = "bg-white rounded-xl shadow p-4 flex flex-col";
+
+        card.innerHTML = `
+          <img src="${book.image || "https://via.placeholder.com/150"}" alt="${book.title}" 
+            class="w-full h-48 object-cover rounded-lg mb-4">
+          <h3 class="font-bold text-lg mb-1">${book.title}</h3>
+          <p class="text-sm text-gray-600 mb-1">저자: ${book.author || "미상"}</p>
+          <p class="text-sm text-gray-600 mb-1">출판사: ${book.publisher || "미상"}</p>
+          
+          <!-- ✅ 카테고리와 단계 항상 노출 -->
+          <p class="text-sm text-blue-600 mb-1">카테고리: ${book.category || "-"}</p>
+          <p class="text-sm text-green-600 mb-2">단계: ${book.level || "-"}</p>
+
+          <p class="text-sm text-gray-700 mb-4">${book.reason || ""}</p>
+          <div class="mt-auto flex gap-3">
+            <a href="book-detail.html?id=${book.id}" 
+              class="flex-1 text-center bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">상세보기</a>
+            <a href="${book.buy_link || "#"}" target="_blank" 
+              class="flex-1 text-center bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">구매링크</a>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    // 필터 적용
+    function applyFilter(books) {
+      const selectedCategories = Array.from(document.querySelectorAll(".categoryCheck:checked"))
+        .map(cb => cb.value);
+      const selectedLevels = Array.from(document.querySelectorAll(".levelCheck:checked"))
+        .map(cb => cb.value);
+
+      return books.filter(book => {
+        const bookCategories = book.category ? book.category.split(",").map(c => c.trim()) : [];
+        const categoryMatch = selectedCategories.length === 0 || selectedCategories.some(cat => bookCategories.includes(cat));
+        const levelMatch = selectedLevels.length === 0 || selectedLevels.includes(book.level);
+        return categoryMatch && levelMatch;
+      });
+    }
+
+    // 초기화
+    (async function init() {
+      const books = await fetchBooks();
+      const filters = extractFilters(books);
+
+      renderFilters(filters);
+      renderBooks(books);
+
+      document.getElementById("applyFilter").addEventListener("click", () => {
+        const filtered = applyFilter(books);
+        renderBooks(filtered);
+      });
+    })();
+  </script>
 </body>
 </html>
