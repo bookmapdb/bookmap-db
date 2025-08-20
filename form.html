@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
+
   <!-- 상단 네비게이션 -->
   <header class="bg-blue-600 text-white shadow">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
@@ -20,52 +21,98 @@
   </header>
 
   <!-- 메인 -->
-  <main class="max-w-xl mx-auto px-6 py-10">
-    <h2 class="text-2xl font-bold mb-6 text-center">도서 등록</h2>
-    <form id="bookForm" class="bg-white p-6 rounded-2xl shadow flex flex-col gap-4">
-      <input type="text" id="title" placeholder="제목" class="border rounded-lg px-4 py-2" required>
-      <input type="text" id="author" placeholder="저자" class="border rounded-lg px-4 py-2">
-      <input type="text" id="publisher" placeholder="출판사" class="border rounded-lg px-4 py-2">
-      <input type="text" id="category" placeholder="카테고리 (쉼표 구분)" class="border rounded-lg px-4 py-2">
-      <select id="level" class="border rounded-lg px-4 py-2">
-        <option value="입문">입문</option>
-        <option value="초급">초급</option>
-        <option value="중급">중급</option>
-        <option value="고급">고급</option>
-        <option value="전문">전문</option>
-      </select>
-      <input type="url" id="buy_link" placeholder="구매링크" class="border rounded-lg px-4 py-2">
-      <input type="url" id="image" placeholder="표지 이미지 URL" class="border rounded-lg px-4 py-2">
-      <textarea id="reason" placeholder="등록 이유" rows="4" class="border rounded-lg px-4 py-2"></textarea>
-      <button type="submit" class="bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">등록하기</button>
+  <main class="max-w-3xl mx-auto px-6 py-10">
+    <h2 class="text-2xl font-bold mb-6">도서 등록</h2>
+
+    <form id="bookForm" class="bg-white p-6 rounded-xl shadow space-y-4">
+      <div>
+        <label class="block font-medium mb-1">제목</label>
+        <input type="text" id="title" name="title" required class="w-full border px-3 py-2 rounded">
+      </div>
+
+      <div>
+        <label class="block font-medium mb-1">저자</label>
+        <input type="text" id="author" name="author" required class="w-full border px-3 py-2 rounded">
+      </div>
+
+      <div>
+        <label class="block font-medium mb-1">출판사</label>
+        <input type="text" id="publisher" name="publisher" required class="w-full border px-3 py-2 rounded">
+      </div>
+
+      <div>
+        <label class="block font-medium mb-1">카테고리</label>
+        <input type="text" id="category" name="category" placeholder="예: 소설, 철학" required class="w-full border px-3 py-2 rounded">
+      </div>
+
+      <!-- 도서구분 -->
+      <div>
+        <label class="block font-medium mb-1">도서구분</label>
+        <select id="division" name="division" class="w-full border px-3 py-2 rounded">
+          <option value="국내서">국내서</option>
+          <option value="국외서">국외서</option>
+        </select>
+      </div>
+
+      <!-- 단계 -->
+      <div>
+        <label class="block font-medium mb-1">단계</label>
+        <select id="level" name="level" class="w-full border px-3 py-2 rounded">
+          <option value="입문">입문</option>
+          <option value="초급">초급</option>
+          <option value="중급">중급</option>
+          <option value="고급">고급</option>
+          <option value="전문">전문</option>
+        </select>
+      </div>
+
+      <!-- 원서제목 (선택) -->
+      <div>
+        <label class="block font-medium mb-1">원서 제목 (선택)</label>
+        <input type="text" id="original_title" name="original_title" placeholder="해당되는 경우만" class="w-full border px-3 py-2 rounded">
+      </div>
+
+      <!-- 원서 구매링크 (선택) -->
+      <div>
+        <label class="block font-medium mb-1">원서 구매링크 (선택)</label>
+        <input type="url" id="original_buy_link" name="original_buy_link" placeholder="해당되는 경우만" class="w-full border px-3 py-2 rounded">
+      </div>
+
+      <div>
+        <label class="block font-medium mb-1">구매 링크</label>
+        <input type="url" id="buy_link" name="buy_link" required class="w-full border px-3 py-2 rounded">
+      </div>
+
+      <div>
+        <label class="block font-medium mb-1">이미지 URL</label>
+        <input type="url" id="image" name="image" required class="w-full border px-3 py-2 rounded">
+      </div>
+
+      <div>
+        <label class="block font-medium mb-1">추천 이유</label>
+        <textarea id="reason" name="reason" rows="3" class="w-full border px-3 py-2 rounded"></textarea>
+      </div>
+
+      <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">
+        도서 등록
+      </button>
     </form>
   </main>
 
   <script>
     document.getElementById("bookForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const newBook = {
-        id: Date.now(),
-        title: document.getElementById("title").value,
-        author: document.getElementById("author").value,
-        publisher: document.getElementById("publisher").value,
-        category: document.getElementById("category").value,
-        level: document.getElementById("level").value,
-        buy_link: document.getElementById("buy_link").value,
-        image: document.getElementById("image").value,
-        reason: document.getElementById("reason").value,
-      };
+
+      const formData = Object.fromEntries(new FormData(e.target).entries());
+
       const res = await fetch("/api/addBook", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newBook),
+        body: JSON.stringify(formData),
       });
-      if (res.ok) {
-        alert("도서가 성공적으로 등록되었습니다!");
-        e.target.reset();
-      } else {
-        alert("등록 중 오류가 발생했습니다.");
-      }
+
+      const result = await res.json();
+      alert(result.message || result.error);
     });
   </script>
 </body>
