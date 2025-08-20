@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BookMap — 북맵 리스트</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <!-- 상단 네비게이션 -->
+  <header class="bg-blue-600 text-white shadow">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
+      <h1 class="text-xl font-bold">📚 BookMap</h1>
+      <nav class="text-sm">
+        <a href="index.html" class="hover:underline">홈</a> ·
+        <span class="font-semibold">북맵 리스트</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- 메인 컨텐츠 -->
+  <main class="max-w-6xl mx-auto px-6 py-10">
+    <h2 class="text-2xl font-bold mb-6">북맵 리스트</h2>
+
+    <!-- 필터 영역 -->
+    <div class="mb-8 bg-white p-6 rounded-2xl shadow">
+      <h3 class="text-lg font-semibold mb-4">필터</h3>
+      <div class="flex flex-wrap gap-4">
+        <!-- 카테고리 필터 -->
+        <input id="categoryFilter" type="text" placeholder="카테고리 입력 (쉼표 구분)"
+          class="flex-1 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"/>
+        
+        <!-- 단계 필터 -->
+        <select id="levelFilter"
+          class="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+          <option value="">전체 단계</option>
+          <option value="입문">입문</option>
+          <option value="초급">초급</option>
+          <option value="중급">중급</option>
+          <option value="고급">고급</option>
+          <option value="전문">전문</option>
+        </select>
+
+        <button id="filterBtn"
+          class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+          적용
+        </button>
+      </div>
+    </div>
+
+    <!-- 도서 리스트 -->
+    <div id="bookList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- 카드들이 JS로 채워집니다 -->
+    </div>
+  </main>
+
+  <script>
+    const API_URL = "https://raw.githubusercontent.com/bookmapdb/bookmap-db/main/books.json";
+    const bookList = document.getElementById("bookList");
+    const filterBtn = document.getElementById("filterBtn");
+
+    // 도서 데이터 불러오기
+    async function fetchBooks() {
+      const res = await fetch(API_URL);
+      return res.json();
+    }
+
+    // 도서 리스트 렌더링
+    function renderBooks(books) {
+      bookList.innerHTML = "";
+      if (books.length === 0) {
+        bookList.innerHTML = `<p class="col-span-full text-center text-gray-500">검색된 도서가 없습니다.</p>`;
+        return;
+      }
+
+      books.forEach((book) => {
+        const card = document.createElement("div");
+        card.className = "bg-white rounded-xl shadow hover:shadow-lg transition p-4 flex flex-col";
+
+        card.innerHTML = `
+          <img src="${book.image || 'https://via.placeholder.com/150x220?text=No+Cover'}"
+               alt="${book.title}" 
+               class="w-full h-56 object-cover rounded-lg mb-4">
+          <h3 class="text-lg font-bold mb-2">${book.title}</h3>
+          <p class="text-sm text-gray-600">저자: ${book.author || "-"}</p>
+          <p class="text-sm text-gray-600">출판사: ${book.publisher || "-"}</p>
+          <p class="text-xs text-gray-500 mt-2">단계: ${book.level || "-"}</p>
+
+          <div class="mt-3 flex gap-2">
+            <a href="book-detail.html?id=${book.id}"
+               class="flex-1 text-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+               상세보기
+            </a>
+            ${book.buy_link ? `
+              <a href="${book.buy_link}" target="_blank"
+                 class="flex-1 text-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                 구매링크
+              </a>
+            ` : ""}
+          </div>
+        `;
+        bookList.appendChild(card);
+      });
+    }
+
+    // 필터 적용
+    filterBtn.addEventListener("click", async () => {
+      const categoryInput = document.getElementById("categoryFilter").value.trim();
+      const level = document.getElementById("levelFilter").value;
+      
+      const books = await fetchBooks();
+      const filtered = books.filter(book => {
+        let ok = true;
+        if (categoryInput) {
+          const categories = categoryInput.split(",").map(c => c.trim());
+          ok = categories.some(c => book.category?.includes(c));
+        }
+        if (level && book.level !== level) ok = false;
+        return ok;
+      });
+      renderBooks(filtered);
+    });
+
+    // 최초 로드
+    (async () => {
+      const books = await fetchBooks();
+      renderBooks(books);
+    })();
+  </script>
+</body>
+</html>
