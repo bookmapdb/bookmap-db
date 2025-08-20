@@ -23,12 +23,6 @@
   <!-- 메인 컨텐츠 -->
   <main class="max-w-3xl mx-auto px-6 py-10">
     <div id="bookDetail" class="bg-white p-6 rounded-2xl shadow"></div>
-
-    <!-- 댓글 영역 -->
-    <section class="mt-10">
-      <h3 class="text-lg font-semibold mb-4">댓글</h3>
-      <div id="giscus-container"></div>
-    </section>
   </main>
 
   <script>
@@ -75,27 +69,6 @@
             </div>
           </div>
         </div>
-      `;
-
-      // ✅ giscus 댓글 스크립트 동적 삽입
-      const giscusContainer = document.getElementById("giscus-container");
-      giscusContainer.innerHTML = `
-        <script src="https://giscus.app/client.js"
-                data-repo="bookmapdb/bookmap-db"
-                data-repo-id="R_kgDOPg-aRg"
-                data-category="Book Comments"
-                data-category-id="DIC_kwDOPg-aRs4CuY2o"
-                data-mapping="specific"
-                data-term="book-${book.id}"
-                data-strict="0"
-                data-reactions-enabled="1"
-                data-emit-metadata="0"
-                data-input-position="bottom"
-                data-theme="preferred_color_scheme"
-                data-lang="ko"
-                crossorigin="anonymous"
-                async>
-        </script>
       `;
     }
 
