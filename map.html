@@ -30,10 +30,20 @@
   async function loadBookMap() {
     const urlParams = new URLSearchParams(window.location.search);
     const bookId = urlParams.get("id");
+    const bookTitle = urlParams.get("title");
 
-    const res = await fetch("books.json"); // 📌 도서 데이터
+    const res = await fetch("books.json");
     const books = await res.json();
-    const book = books.find(b => b.id == bookId);
+
+    let book = null;
+    if (bookId) {
+      // ID로 검색
+      book = books.find(b => String(b.id) === String(bookId));
+    } else if (bookTitle) {
+      // Title로 검색 (공백/대소문자 무시)
+      const titleQuery = bookTitle.trim().toLowerCase();
+      book = books.find(b => b.title.trim().toLowerCase() === titleQuery);
+    }
 
     if (!book) {
       document.getElementById("bookMap").innerHTML =
