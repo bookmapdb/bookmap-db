@@ -13,10 +13,19 @@
   <header class="bg-blue-600 text-white shadow">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
       <h1 class="text-xl font-bold">📚 BookMap — 관계도</h1>
-      <nav class="flex gap-6 text-sm">
+      <nav class="flex gap-6 text-sm items-center">
         <a href="index.html" class="hover:underline">홈</a>
         <a href="form.html" class="hover:underline">도서 등록</a>
         <a href="book.html" class="hover:underline">북맵 리스트</a>
+
+        <!-- 검색창 -->
+        <form id="searchForm" class="ml-4 flex">
+          <input type="text" id="searchInput" placeholder="책 제목 또는 저자 검색"
+            class="px-2 py-1 rounded-l border border-gray-300 text-black w-40 md:w-60">
+          <button type="submit" class="px-3 py-1 bg-white text-blue-600 font-semibold rounded-r border border-gray-300 hover:bg-gray-100">
+            검색
+          </button>
+        </form>
       </nav>
     </div>
   </header>
@@ -27,6 +36,32 @@
   </main>
 
   <script>
+  // 🔎 검색 기능
+  document.getElementById("searchForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const query = document.getElementById("searchInput").value.trim();
+    if (!query) return;
+
+    const res = await fetch("books.json");
+    const books = await res.json();
+
+    // 책 제목 먼저 검색
+    const bookMatch = books.find(b => b.title.trim().toLowerCase() === query.toLowerCase());
+    if (bookMatch) {
+      window.location.href = `map.html?title=${encodeURIComponent(query)}`;
+      return;
+    }
+
+    // 없으면 저자 검색
+    const authorMatch = books.find(b => b.author.trim().toLowerCase() === query.toLowerCase());
+    if (authorMatch) {
+      window.location.href = `map.html?author=${encodeURIComponent(query)}`;
+      return;
+    }
+
+    alert("해당 책 제목이나 저자를 찾을 수 없습니다.");
+  });
+
   async function loadBookMap() {
     const urlParams = new URLSearchParams(window.location.search);
     const bookId = urlParams.get("id");
@@ -61,15 +96,12 @@
     let edges = [];
 
     if (mode === "book") {
-      // 📘 도서 중심
       const bookIdStr = String(book.id);
       nodes.push({ data: { id: bookIdStr, label: book.title, type: "book" } });
 
-      // 단계
       nodes.push({ data: { id: "level-" + book.level, label: book.level, type: "level" } });
       edges.push({ data: { source: bookIdStr, target: "level-" + book.level } });
 
-      // 카테고리
       let categories = [];
       if (Array.isArray(book.category)) categories = book.category;
       else if (typeof book.category === "string") categories = book.category.split(",").map(c => c.trim());
@@ -79,13 +111,11 @@
         edges.push({ data: { source: bookIdStr, target: "cat-" + cat } });
       });
 
-      // 저자
       if (book.author) {
         nodes.push({ data: { id: "author-" + book.author, label: book.author, type: "author" } });
         edges.push({ data: { source: bookIdStr, target: "author-" + book.author } });
       }
 
-      // 관련 도서 (카테고리/단계/저자 공유)
       books.forEach(b => {
         if (b.id !== book.id) {
           let otherCats = [];
@@ -110,7 +140,6 @@
       });
 
     } else if (mode === "category") {
-      // 🏷️ 카테고리 중심
       const cat = categoryParam.trim();
       nodes.push({ data: { id: "cat-" + cat, label: cat, type: "category" } });
 
@@ -145,7 +174,6 @@
       });
 
     } else if (mode === "author") {
-      // 👤 저자 중심
       const author = authorParam.trim();
       nodes.push({ data: { id: "author-" + author, label: author, type: "author" } });
 
@@ -154,7 +182,6 @@
           nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
           edges.push({ data: { source: "author-" + author, target: String(b.id) } });
 
-          // 카테고리 연결
           let cats = [];
           if (Array.isArray(b.category)) cats = b.category;
           else if (typeof b.category === "string") cats = b.category.split(",").map(c => c.trim());
@@ -166,7 +193,6 @@
             edges.push({ data: { source: String(b.id), target: catId } });
           });
 
-          // 단계 연결
           if (b.level) {
             const levelId = "level-" + b.level;
             if (!nodes.find(n => n.data.id === levelId)) {
@@ -178,7 +204,6 @@
       });
     }
 
-    // Cytoscape 초기화
     const cy = cytoscape({
       container: document.getElementById("bookMap"),
       elements: { nodes, edges },
@@ -193,7 +218,6 @@
       layout: { name: 'breadthfirst', directed: true, padding: 30, spacingFactor: 1.2, animate: true }
     });
 
-    // 📌 클릭 이벤트
     cy.on('tap', 'node', function(evt){
       const node = evt.target;
       const type = node.data('type');
@@ -202,13 +226,11 @@
         window.location.href = `book-detail.html?id=${node.id()}`;
       }
       if (type === 'author' && !authorParam) {
-        // 저자 노드 클릭 → author 모드로 이동
         const authorName = node.data('label');
         window.location.href = `map.html?author=${encodeURIComponent(authorName)}`;
       }
     });
 
-    // 강조 탐색
     cy.on('tap', 'node', function(evt){
       const node = evt.target;
       const neighborhood = node.closedNeighborhood();
