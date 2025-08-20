@@ -3,16 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BookMap — 관계도 보기</title>
+  <title>BookMap — 관계도</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/cytoscape@3.28.0/dist/cytoscape.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
   <!-- 상단 네비게이션 -->
   <header class="bg-blue-600 text-white shadow">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-      <h1 class="text-xl font-bold">📚 BookMap — 관계도</h1>
+      <h1 class="text-xl font-bold">📚 BookMap</h1>
       <nav class="flex gap-6 text-sm items-center">
         <a href="index.html" class="hover:underline">홈</a>
         <a href="form.html" class="hover:underline">도서 등록</a>
@@ -31,227 +31,155 @@
   </header>
 
   <!-- 메인 -->
-  <main class="max-w-6xl mx-auto px-6 py-8">
-    <div id="bookMap" class="w-full h-[600px] border rounded bg-white"></div>
+  <main class="max-w-6xl mx-auto px-6 py-10">
+    <h2 class="text-2xl font-bold mb-6">📌 도서 관계도 (트리 뷰)</h2>
+    <div id="map" class="bg-white rounded-xl shadow p-4 overflow-auto" style="height: 600px;"></div>
   </main>
 
   <script>
-  // 🔎 검색 기능
-  document.getElementById("searchForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const query = document.getElementById("searchInput").value.trim();
-    if (!query) return;
+    // ✅ 검색 기능 (네비게이션 공통)
+    document.getElementById("searchForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const query = document.getElementById("searchInput").value.trim();
+      if (!query) return;
 
-    const res = await fetch("books.json");
-    const books = await res.json();
+      const res = await fetch("books.json");
+      const books = await res.json();
 
-    // 책 제목 먼저 검색
-    const bookMatch = books.find(b => b.title.trim().toLowerCase() === query.toLowerCase());
-    if (bookMatch) {
-      window.location.href = `map.html?title=${encodeURIComponent(query)}`;
-      return;
-    }
-
-    // 없으면 저자 검색
-    const authorMatch = books.find(b => b.author.trim().toLowerCase() === query.toLowerCase());
-    if (authorMatch) {
-      window.location.href = `map.html?author=${encodeURIComponent(query)}`;
-      return;
-    }
-
-    alert("해당 책 제목이나 저자를 찾을 수 없습니다.");
-  });
-
-  async function loadBookMap() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const bookId = urlParams.get("id");
-    const bookTitle = urlParams.get("title");
-    const categoryParam = urlParams.get("category");
-    const authorParam = urlParams.get("author");
-
-    const res = await fetch("books.json");
-    const books = await res.json();
-
-    let book = null;
-    let mode = "book";
-
-    if (bookId) {
-      book = books.find(b => String(b.id) === String(bookId));
-    } else if (bookTitle) {
-      const titleQuery = bookTitle.trim().toLowerCase();
-      book = books.find(b => b.title.trim().toLowerCase() === titleQuery);
-    } else if (categoryParam) {
-      mode = "category";
-    } else if (authorParam) {
-      mode = "author";
-    }
-
-    if (mode === "book" && !book) {
-      document.getElementById("bookMap").innerHTML =
-        `<p class="text-center text-gray-500 py-20">해당 도서를 찾을 수 없습니다.</p>`;
-      return;
-    }
-
-    let nodes = [];
-    let edges = [];
-
-    if (mode === "book") {
-      const bookIdStr = String(book.id);
-      nodes.push({ data: { id: bookIdStr, label: book.title, type: "book" } });
-
-      nodes.push({ data: { id: "level-" + book.level, label: book.level, type: "level" } });
-      edges.push({ data: { source: bookIdStr, target: "level-" + book.level } });
-
-      let categories = [];
-      if (Array.isArray(book.category)) categories = book.category;
-      else if (typeof book.category === "string") categories = book.category.split(",").map(c => c.trim());
-
-      categories.forEach(cat => {
-        nodes.push({ data: { id: "cat-" + cat, label: cat, type: "category" } });
-        edges.push({ data: { source: bookIdStr, target: "cat-" + cat } });
-      });
-
-      if (book.author) {
-        nodes.push({ data: { id: "author-" + book.author, label: book.author, type: "author" } });
-        edges.push({ data: { source: bookIdStr, target: "author-" + book.author } });
+      const bookMatch = books.find(b => b.title.trim().toLowerCase() === query.toLowerCase());
+      if (bookMatch) {
+        window.location.href = `map.html?title=${encodeURIComponent(query)}`;
+        return;
       }
 
-      books.forEach(b => {
-        if (b.id !== book.id) {
-          let otherCats = [];
-          if (Array.isArray(b.category)) otherCats = b.category;
-          else if (typeof b.category === "string") otherCats = b.category.split(",").map(c => c.trim());
+      const authorMatch = books.find(b => b.author.trim().toLowerCase() === query.toLowerCase());
+      if (authorMatch) {
+        window.location.href = `map.html?author=${encodeURIComponent(query)}`;
+        return;
+      }
 
-          if (otherCats.some(cat => categories.includes(cat))) {
-            nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
-            edges.push({ data: { source: "cat-" + otherCats[0], target: String(b.id) } });
-          }
+      alert("해당 책 제목이나 저자를 찾을 수 없습니다.");
+    });
 
-          if (b.level === book.level) {
-            nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
-            edges.push({ data: { source: "level-" + b.level, target: String(b.id) } });
-          }
+    async function loadMap() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const titleQuery = urlParams.get("title");
+      const authorQuery = urlParams.get("author");
+      const idQuery = urlParams.get("id");
 
-          if (book.author && b.author === book.author) {
-            nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
-            edges.push({ data: { source: "author-" + book.author, target: String(b.id) } });
-          }
-        }
-      });
+      const res = await fetch("books.json");
+      const books = await res.json();
 
-    } else if (mode === "category") {
-      const cat = categoryParam.trim();
-      nodes.push({ data: { id: "cat-" + cat, label: cat, type: "category" } });
+      let rootBook;
+      if (idQuery) {
+        rootBook = books.find(b => b.id == idQuery);
+      } else if (titleQuery) {
+        rootBook = books.find(b => b.title.trim().toLowerCase() === titleQuery.toLowerCase());
+      } else if (authorQuery) {
+        rootBook = books.find(b => b.author.trim().toLowerCase() === authorQuery.toLowerCase());
+      }
 
-      const grouped = {};
-      books.forEach(b => {
-        let cats = [];
-        if (Array.isArray(b.category)) cats = b.category;
-        else if (typeof b.category === "string") cats = b.category.split(",").map(c => c.trim());
+      if (!rootBook) {
+        document.getElementById("map").innerHTML =
+          `<p class="text-gray-500 text-center">해당 도서를 찾을 수 없습니다.</p>`;
+        return;
+      }
 
-        if (cats.includes(cat)) {
-          if (!grouped[b.level]) grouped[b.level] = [];
-          grouped[b.level].push(b);
-        }
-      });
+      // ✅ 카테고리/단계 기반 관계 트리 구성
+      function buildTree(book, allBooks) {
+        let categories = [];
+        if (Array.isArray(book.category)) categories = book.category;
+        else if (typeof book.category === "string") categories = book.category.split(",").map(c => c.trim());
 
-      Object.keys(grouped).forEach(level => {
-        nodes.push({ data: { id: "level-" + level, label: level, type: "level" } });
-        edges.push({ data: { source: "cat-" + cat, target: "level-" + level } });
-
-        grouped[level].forEach(b => {
-          nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
-          edges.push({ data: { source: "level-" + level, target: String(b.id) } });
-
-          if (b.author) {
-            const authorId = "author-" + b.author;
-            if (!nodes.find(n => n.data.id === authorId)) {
-              nodes.push({ data: { id: authorId, label: b.author, type: "author" } });
+        return {
+          name: book.title,
+          id: book.id, // 상세 페이지 이동용
+          highlight: true,
+          children: [
+            {
+              name: `카테고리`,
+              children: categories.map(cat => ({
+                name: cat,
+                children: allBooks.filter(b =>
+                  (Array.isArray(b.category) ? b.category.includes(cat) : b.category.split(",").map(c => c.trim()).includes(cat))
+                  && b.id !== book.id
+                ).map(b => ({ name: b.title, id: b.id }))
+              }))
+            },
+            {
+              name: `단계: ${book.level}`,
+              children: allBooks.filter(b => b.level === book.level && b.id !== book.id)
+                .map(b => ({ name: b.title, id: b.id }))
             }
-            edges.push({ data: { source: String(b.id), target: authorId } });
+          ]
+        };
+      }
+
+      const treeData = buildTree(rootBook, books);
+
+      // ✅ D3 트리 레이아웃
+      const width = document.getElementById("map").clientWidth;
+      const height = document.getElementById("map").clientHeight;
+
+      const svg = d3.select("#map").append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .append("g")
+        .attr("transform", "translate(40,0)");
+
+      const root = d3.hierarchy(treeData);
+      const treeLayout = d3.tree().size([height, width - 160]);
+      treeLayout(root);
+
+      // 링크
+      svg.selectAll("path")
+        .data(root.links())
+        .enter()
+        .append("path")
+        .attr("d", d3.linkHorizontal()
+          .x(d => d.y)
+          .y(d => d.x))
+        .attr("fill", "none")
+        .attr("stroke", "#ccc");
+
+      // 노드
+      const node = svg.selectAll("g.node")
+        .data(root.descendants())
+        .enter()
+        .append("g")
+        .attr("class", "node")
+        .attr("transform", d => `translate(${d.y},${d.x})`);
+
+      // ✅ 원형 노드
+      node.append("circle")
+        .attr("r", 6)
+        .attr("fill", d => d.data.highlight ? "#2563eb" : "#fff")
+        .attr("stroke", d => d.data.highlight ? "#1d4ed8" : "#555")
+        .attr("stroke-width", d => d.data.highlight ? 3 : 1.5)
+        .style("cursor", d => d.data.id ? "pointer" : "default")
+        .on("click", (event, d) => {
+          if (d.data.id) {
+            window.location.href = `book-detail.html?id=${d.data.id}`;
           }
         });
-      });
 
-    } else if (mode === "author") {
-      const author = authorParam.trim();
-      nodes.push({ data: { id: "author-" + author, label: author, type: "author" } });
-
-      books.forEach(b => {
-        if (b.author === author) {
-          nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
-          edges.push({ data: { source: "author-" + author, target: String(b.id) } });
-
-          let cats = [];
-          if (Array.isArray(b.category)) cats = b.category;
-          else if (typeof b.category === "string") cats = b.category.split(",").map(c => c.trim());
-          cats.forEach(cat => {
-            const catId = "cat-" + cat;
-            if (!nodes.find(n => n.data.id === catId)) {
-              nodes.push({ data: { id: catId, label: cat, type: "category" } });
-            }
-            edges.push({ data: { source: String(b.id), target: catId } });
-          });
-
-          if (b.level) {
-            const levelId = "level-" + b.level;
-            if (!nodes.find(n => n.data.id === levelId)) {
-              nodes.push({ data: { id: levelId, label: b.level, type: "level" } });
-            }
-            edges.push({ data: { source: String(b.id), target: levelId } });
+      // 텍스트
+      node.append("text")
+        .attr("dy", 3)
+        .attr("x", d => d.children ? -12 : 12)
+        .style("text-anchor", d => d.children ? "end" : "start")
+        .text(d => d.data.name)
+        .style("font-weight", d => d.data.highlight ? "bold" : "normal")
+        .style("fill", d => d.data.highlight ? "#1d4ed8" : "#333")
+        .style("cursor", d => d.data.id ? "pointer" : "default")
+        .on("click", (event, d) => {
+          if (d.data.id) {
+            window.location.href = `book-detail.html?id=${d.data.id}`;
           }
-        }
-      });
+        });
     }
 
-    const cy = cytoscape({
-      container: document.getElementById("bookMap"),
-      elements: { nodes, edges },
-      style: [
-        { selector: 'node[type="book"]', style: { 'background-color': '#3b82f6', 'label': 'data(label)', 'color': '#fff', 'font-size': 12 }},
-        { selector: 'node[type="related"]', style: { 'background-color': '#9ca3af', 'label': 'data(label)', 'font-size': 11 }},
-        { selector: 'node[type="category"]', style: { 'background-color': '#10b981', 'label': 'data(label)', 'shape': 'round-rectangle', 'color': '#fff', 'font-size': 11 }},
-        { selector: 'node[type="level"]', style: { 'background-color': '#f59e0b', 'label': 'data(label)', 'shape': 'diamond', 'color': '#fff', 'font-size': 11 }},
-        { selector: 'node[type="author"]', style: { 'background-color': '#8b5cf6', 'label': 'data(label)', 'shape': 'ellipse', 'color': '#fff', 'font-size': 11 }},
-        { selector: 'edge', style: { 'width': 2, 'line-color': '#d1d5db', 'target-arrow-shape': 'triangle', 'target-arrow-color': '#d1d5db', 'curve-style': 'bezier' }}
-      ],
-      layout: { name: 'breadthfirst', directed: true, padding: 30, spacingFactor: 1.2, animate: true }
-    });
-
-    cy.on('tap', 'node', function(evt){
-      const node = evt.target;
-      const type = node.data('type');
-
-      if (type === 'book' || type === 'related') {
-        window.location.href = `book-detail.html?id=${node.id()}`;
-      }
-      if (type === 'author' && !authorParam) {
-        const authorName = node.data('label');
-        window.location.href = `map.html?author=${encodeURIComponent(authorName)}`;
-      }
-    });
-
-    cy.on('tap', 'node', function(evt){
-      const node = evt.target;
-      const neighborhood = node.closedNeighborhood();
-      cy.elements().addClass('faded');
-      neighborhood.removeClass('faded');
-      node.addClass('highlighted');
-    });
-
-    cy.on('tap', function(evt){
-      if(evt.target === cy){
-        cy.elements().removeClass('faded highlighted');
-      }
-    });
-
-    cy.style()
-      .selector('.faded').style({ 'opacity': 0.2 })
-      .selector('.highlighted').style({ 'border-width': 3, 'border-color': '#000' })
-      .update();
-  }
-
-  loadBookMap();
+    loadMap();
   </script>
 </body>
 </html>
