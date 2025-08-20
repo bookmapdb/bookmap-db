@@ -69,11 +69,10 @@
         reason: document.getElementById("reason").value, // ✅ 등록 이유 저장
       };
 
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newBook),
-      });
+      const res = await fetch("https://bookmap-db.vercel.app/api/addBook", {
+  method: "POST",
+  ...
+});
 
       if (res.ok) {
         alert("도서가 성공적으로 등록되었습니다!");
