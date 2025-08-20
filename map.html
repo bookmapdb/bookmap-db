@@ -37,10 +37,8 @@
 
     let book = null;
     if (bookId) {
-      // ID로 검색
       book = books.find(b => String(b.id) === String(bookId));
     } else if (bookTitle) {
-      // Title로 검색 (공백/대소문자 무시)
       const titleQuery = bookTitle.trim().toLowerCase();
       book = books.find(b => b.title.trim().toLowerCase() === titleQuery);
     }
@@ -51,27 +49,50 @@
       return;
     }
 
-    // 노드 및 엣지 정의
     const nodes = [
-      { data: { id: book.id, label: book.title, type: "book" } },
-      { data: { id: "cat-" + book.category, label: book.category, type: "category" } },
+      { data: { id: String(book.id), label: book.title, type: "book" } },
       { data: { id: "level-" + book.level, label: book.level, type: "level" } }
     ];
     const edges = [
-      { data: { source: book.id, target: "cat-" + book.category } },
-      { data: { source: book.id, target: "level-" + book.level } }
+      { data: { source: String(book.id), target: "level-" + book.level } }
     ];
 
-    // 관련 도서 (같은 카테고리/단계)
+    // 카테고리: 배열인지 확인하고, 문자열이라도 split 처리
+    let categories = [];
+    if (Array.isArray(book.category)) {
+      categories = book.category;
+    } else if (typeof book.category === "string") {
+      categories = book.category.split(",").map(c => c.trim());
+    }
+
+    // 현재 책의 카테고리 노드들 추가
+    categories.forEach(cat => {
+      nodes.push({ data: { id: "cat-" + cat, label: cat, type: "category" } });
+      edges.push({ data: { source: String(book.id), target: "cat-" + cat } });
+    });
+
+    // 관련 도서 연결
     books.forEach(b => {
       if (b.id !== book.id) {
-        if (b.category === book.category) {
-          nodes.push({ data: { id: b.id, label: b.title, type: "related" } });
-          edges.push({ data: { source: "cat-" + b.category, target: b.id } });
+        // 카테고리 기준
+        let otherCats = [];
+        if (Array.isArray(b.category)) {
+          otherCats = b.category;
+        } else if (typeof b.category === "string") {
+          otherCats = b.category.split(",").map(c => c.trim());
         }
+
+        otherCats.forEach(cat => {
+          if (categories.includes(cat)) {
+            nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
+            edges.push({ data: { source: "cat-" + cat, target: String(b.id) } });
+          }
+        });
+
+        // 단계 기준
         if (b.level === book.level) {
-          nodes.push({ data: { id: b.id, label: b.title, type: "related" } });
-          edges.push({ data: { source: "level-" + b.level, target: b.id } });
+          nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
+          edges.push({ data: { source: "level-" + b.level, target: String(b.id) } });
         }
       }
     });
@@ -88,7 +109,7 @@
         { selector: 'edge', style: { 'width': 2, 'line-color': '#d1d5db', 'target-arrow-shape': 'triangle', 'target-arrow-color': '#d1d5db', 'curve-style': 'bezier' }}
       ],
       layout: {
-        name: 'breadthfirst',  // 트리형 배치
+        name: 'breadthfirst',
         directed: true,
         padding: 30,
         spacingFactor: 1.2,
