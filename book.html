@@ -12,19 +12,10 @@
   <header class="bg-blue-600 text-white shadow">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
       <h1 class="text-xl font-bold">📚 BookMap</h1>
-      <nav class="flex gap-6 text-sm items-center">
+      <nav class="flex gap-6 text-sm">
         <a href="index.html" class="hover:underline">홈</a>
         <a href="form.html" class="hover:underline">도서 등록</a>
         <a href="book.html" class="hover:underline">북맵 리스트</a>
-
-        <!-- 검색창 -->
-        <form id="searchForm" class="ml-4 flex">
-          <input type="text" id="searchInput" placeholder="책 제목 또는 저자 검색"
-            class="px-2 py-1 rounded-l border border-gray-300 text-black w-40 md:w-60">
-          <button type="submit" class="px-3 py-1 bg-white text-blue-600 font-semibold rounded-r border border-gray-300 hover:bg-gray-100">
-            검색
-          </button>
-        </form>
       </nav>
     </div>
   </header>
@@ -65,13 +56,15 @@
   </main>
 
   <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbywJOW4dOlmDrzood3ka_jizri4K7sFqTJDPG8ibnmDrxXZgFWrFnjMEv38C5pCtjp_/exec";
+
     let allBooks = [];
     let selectedCategories = new Set();
     let selectedLevels = new Set();
     let selectedDivisions = new Set();
 
     async function loadBooks() {
-      const res = await fetch("books.json");
+      const res = await fetch(API_URL);
       allBooks = await res.json();
 
       renderFilters();
@@ -84,6 +77,7 @@
       const divisions = new Set();
 
       allBooks.forEach(book => {
+        // 카테고리 처리 (쉼표 구분 지원)
         let cats = [];
         if (Array.isArray(book.category)) {
           cats = book.category;
@@ -164,7 +158,6 @@
               class="w-full h-48 object-cover rounded-md mb-4">
             <h3 class="text-lg font-bold mb-1 truncate">${book.title}</h3>
             <p class="text-sm text-gray-600">저자: ${book.author}</p>
-            <p class="text-sm text-gray-600">출판사: ${book.publisher}</p>
             <p class="text-sm text-gray-600">
               카테고리: ${(Array.isArray(book.category) ? book.category.join(", ") : book.category)}
             </p>
@@ -181,30 +174,6 @@
         list.innerHTML = `<p class="text-gray-500 col-span-full">조건에 맞는 도서가 없습니다.</p>`;
       }
     }
-
-    // 검색 기능
-    document.getElementById("searchForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const query = document.getElementById("searchInput").value.trim();
-      if (!query) return;
-
-      const res = await fetch("books.json");
-      const books = await res.json();
-
-      const bookMatch = books.find(b => b.title.trim().toLowerCase() === query.toLowerCase());
-      if (bookMatch) {
-        window.location.href = `map.html?title=${encodeURIComponent(query)}`;
-        return;
-      }
-
-      const authorMatch = books.find(b => b.author.trim().toLowerCase() === query.toLowerCase());
-      if (authorMatch) {
-        window.location.href = `map.html?author=${encodeURIComponent(query)}`;
-        return;
-      }
-
-      alert("해당 책 제목이나 저자를 찾을 수 없습니다.");
-    });
 
     loadBooks();
   </script>
