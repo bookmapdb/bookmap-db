@@ -5,6 +5,7 @@ async function loadBooks() {
   const categories = new Set();
   const levels = new Set();
 
+  // 카테고리/단계 수집
   books.forEach(book => {
     book.category.split(",").forEach(c => categories.add(c.trim()));
     levels.add(book.level);
@@ -13,23 +14,43 @@ async function loadBooks() {
   const categoryFilter = document.getElementById("categoryFilter");
   const levelFilter = document.getElementById("levelFilter");
 
+  // ✅ 버튼 생성 함수
+  function createFilterButton(value, className) {
+    const btn = document.createElement("button");
+    btn.textContent = value;
+    btn.className = `px-3 py-1 border rounded-full text-sm ${className} transition`;
+    btn.dataset.value = value;
+    btn.dataset.active = "false";
+
+    btn.addEventListener("click", () => {
+      btn.dataset.active = btn.dataset.active === "true" ? "false" : "true";
+      btn.classList.toggle("bg-blue-600");
+      btn.classList.toggle("text-white");
+      renderBooks();
+    });
+
+    return btn;
+  }
+
+  // 카테고리 버튼 생성
   categories.forEach(c => {
-    const label = document.createElement("label");
-    label.className = "flex items-center gap-2 text-sm";
-    label.innerHTML = `<input type="checkbox" value="${c}" class="category-check"> ${c}`;
-    categoryFilter.appendChild(label);
+    categoryFilter.appendChild(createFilterButton(c, "category-btn"));
   });
 
+  // 단계 버튼 생성
   levels.forEach(l => {
-    const label = document.createElement("label");
-    label.className = "flex items-center gap-2 text-sm";
-    label.innerHTML = `<input type="checkbox" value="${l}" class="level-check"> ${l}`;
-    levelFilter.appendChild(label);
+    levelFilter.appendChild(createFilterButton(l, "level-btn"));
   });
 
+  // ✅ 도서 렌더링
   function renderBooks() {
-    const selectedCategories = Array.from(document.querySelectorAll(".category-check:checked")).map(c => c.value);
-    const selectedLevels = Array.from(document.querySelectorAll(".level-check:checked")).map(c => c.value);
+    const selectedCategories = Array.from(document.querySelectorAll(".category-btn"))
+      .filter(btn => btn.dataset.active === "true")
+      .map(btn => btn.dataset.value);
+
+    const selectedLevels = Array.from(document.querySelectorAll(".level-btn"))
+      .filter(btn => btn.dataset.active === "true")
+      .map(btn => btn.dataset.value);
 
     const filtered = books.filter(book => {
       const catMatch = selectedCategories.length === 0 || selectedCategories.some(c => book.category.includes(c));
@@ -52,10 +73,6 @@ async function loadBooks() {
         </div>
       </div>`).join("");
   }
-
-  // 체크박스 변화 시 즉시 반영
-  categoryFilter.addEventListener("change", renderBooks);
-  levelFilter.addEventListener("change", renderBooks);
 
   renderBooks();
 }
