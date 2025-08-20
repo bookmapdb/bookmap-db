@@ -32,6 +32,7 @@
     const bookId = urlParams.get("id");
     const bookTitle = urlParams.get("title");
     const categoryParam = urlParams.get("category");
+    const authorParam = urlParams.get("author");
 
     const res = await fetch("books.json");
     const books = await res.json();
@@ -46,6 +47,8 @@
       book = books.find(b => b.title.trim().toLowerCase() === titleQuery);
     } else if (categoryParam) {
       mode = "category";
+    } else if (authorParam) {
+      mode = "author";
     }
 
     if (mode === "book" && !book) {
@@ -60,12 +63,13 @@
     if (mode === "book") {
       // 📘 도서 중심
       const bookIdStr = String(book.id);
+      nodes.push({ data: { id: bookIdStr, label: book.title, type: "book" } });
 
-      nodes.push({ data: { id: bookIdStr, label: book.title, type: "book", author: book.author, publisher: book.publisher } });
+      // 단계
       nodes.push({ data: { id: "level-" + book.level, label: book.level, type: "level" } });
       edges.push({ data: { source: bookIdStr, target: "level-" + book.level } });
 
-      // 카테고리 처리
+      // 카테고리
       let categories = [];
       if (Array.isArray(book.category)) categories = book.category;
       else if (typeof book.category === "string") categories = book.category.split(",").map(c => c.trim());
@@ -75,40 +79,38 @@
         edges.push({ data: { source: bookIdStr, target: "cat-" + cat } });
       });
 
-      // 저자 처리
+      // 저자
       if (book.author) {
         nodes.push({ data: { id: "author-" + book.author, label: book.author, type: "author" } });
         edges.push({ data: { source: bookIdStr, target: "author-" + book.author } });
       }
 
-      // 관련 도서
+      // 관련 도서 (카테고리/단계/저자 공유)
       books.forEach(b => {
         if (b.id !== book.id) {
           let otherCats = [];
           if (Array.isArray(b.category)) otherCats = b.category;
           else if (typeof b.category === "string") otherCats = b.category.split(",").map(c => c.trim());
 
-          otherCats.forEach(cat => {
-            if (categories.includes(cat)) {
-              nodes.push({ data: { id: String(b.id), label: b.title, type: "related", author: b.author, publisher: b.publisher } });
-              edges.push({ data: { source: "cat-" + cat, target: String(b.id) } });
-            }
-          });
+          if (otherCats.some(cat => categories.includes(cat))) {
+            nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
+            edges.push({ data: { source: "cat-" + otherCats[0], target: String(b.id) } });
+          }
 
           if (b.level === book.level) {
-            nodes.push({ data: { id: String(b.id), label: b.title, type: "related", author: b.author, publisher: b.publisher } });
+            nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
             edges.push({ data: { source: "level-" + b.level, target: String(b.id) } });
           }
 
           if (book.author && b.author === book.author) {
-            nodes.push({ data: { id: String(b.id), label: b.title, type: "related", author: b.author, publisher: b.publisher } });
+            nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
             edges.push({ data: { source: "author-" + book.author, target: String(b.id) } });
           }
         }
       });
 
     } else if (mode === "category") {
-      // 🏷️ 카테고리 중심 + 단계 + 저자
+      // 🏷️ 카테고리 중심
       const cat = categoryParam.trim();
       nodes.push({ data: { id: "cat-" + cat, label: cat, type: "category" } });
 
@@ -129,7 +131,7 @@
         edges.push({ data: { source: "cat-" + cat, target: "level-" + level } });
 
         grouped[level].forEach(b => {
-          nodes.push({ data: { id: String(b.id), label: b.title, type: "related", author: b.author, publisher: b.publisher } });
+          nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
           edges.push({ data: { source: "level-" + level, target: String(b.id) } });
 
           if (b.author) {
@@ -141,6 +143,39 @@
           }
         });
       });
+
+    } else if (mode === "author") {
+      // 👤 저자 중심
+      const author = authorParam.trim();
+      nodes.push({ data: { id: "author-" + author, label: author, type: "author" } });
+
+      books.forEach(b => {
+        if (b.author === author) {
+          nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
+          edges.push({ data: { source: "author-" + author, target: String(b.id) } });
+
+          // 카테고리 연결
+          let cats = [];
+          if (Array.isArray(b.category)) cats = b.category;
+          else if (typeof b.category === "string") cats = b.category.split(",").map(c => c.trim());
+          cats.forEach(cat => {
+            const catId = "cat-" + cat;
+            if (!nodes.find(n => n.data.id === catId)) {
+              nodes.push({ data: { id: catId, label: cat, type: "category" } });
+            }
+            edges.push({ data: { source: String(b.id), target: catId } });
+          });
+
+          // 단계 연결
+          if (b.level) {
+            const levelId = "level-" + b.level;
+            if (!nodes.find(n => n.data.id === levelId)) {
+              nodes.push({ data: { id: levelId, label: b.level, type: "level" } });
+            }
+            edges.push({ data: { source: String(b.id), target: levelId } });
+          }
+        }
+      });
     }
 
     // Cytoscape 초기화
@@ -148,32 +183,32 @@
       container: document.getElementById("bookMap"),
       elements: { nodes, edges },
       style: [
-        { selector: 'node[type="book"]', style: { 'background-color': '#3b82f6', 'label': 'data(label)', 'font-size': 12, 'color': '#fff', 'text-valign': 'center' }},
+        { selector: 'node[type="book"]', style: { 'background-color': '#3b82f6', 'label': 'data(label)', 'color': '#fff', 'font-size': 12 }},
+        { selector: 'node[type="related"]', style: { 'background-color': '#9ca3af', 'label': 'data(label)', 'font-size': 11 }},
         { selector: 'node[type="category"]', style: { 'background-color': '#10b981', 'label': 'data(label)', 'shape': 'round-rectangle', 'color': '#fff', 'font-size': 11 }},
         { selector: 'node[type="level"]', style: { 'background-color': '#f59e0b', 'label': 'data(label)', 'shape': 'diamond', 'color': '#fff', 'font-size': 11 }},
         { selector: 'node[type="author"]', style: { 'background-color': '#8b5cf6', 'label': 'data(label)', 'shape': 'ellipse', 'color': '#fff', 'font-size': 11 }},
-        { selector: 'node[type="related"]', style: { 'background-color': '#9ca3af', 'label': 'data(label)', 'font-size': 10, 'color': '#111', 'text-wrap': 'ellipsis', 'text-max-width': 100 }},
         { selector: 'edge', style: { 'width': 2, 'line-color': '#d1d5db', 'target-arrow-shape': 'triangle', 'target-arrow-color': '#d1d5db', 'curve-style': 'bezier' }}
       ],
-      layout: {
-        name: 'breadthfirst',
-        directed: true,
-        padding: 30,
-        spacingFactor: 1.2,
-        animate: true
-      }
+      layout: { name: 'breadthfirst', directed: true, padding: 30, spacingFactor: 1.2, animate: true }
     });
 
-    // 클릭 시 상세 페이지 이동 (book / related 노드만)
+    // 📌 클릭 이벤트
     cy.on('tap', 'node', function(evt){
       const node = evt.target;
-      if(node.data('type') === 'book' || node.data('type') === 'related'){
-        const bookId = node.id();
-        window.location.href = `book-detail.html?id=${bookId}`;
+      const type = node.data('type');
+
+      if (type === 'book' || type === 'related') {
+        window.location.href = `book-detail.html?id=${node.id()}`;
+      }
+      if (type === 'author' && !authorParam) {
+        // 저자 노드 클릭 → author 모드로 이동
+        const authorName = node.data('label');
+        window.location.href = `map.html?author=${encodeURIComponent(authorName)}`;
       }
     });
 
-    // 클릭 시 연결 강조 (탐색 기능 유지)
+    // 강조 탐색
     cy.on('tap', 'node', function(evt){
       const node = evt.target;
       const neighborhood = node.closedNeighborhood();
@@ -183,16 +218,14 @@
     });
 
     cy.on('tap', function(evt){
-      if(evt.target === cy){ // 빈 공간 클릭 시 초기화
+      if(evt.target === cy){
         cy.elements().removeClass('faded highlighted');
       }
     });
 
     cy.style()
-      .selector('.faded')
-        .style({ 'opacity': 0.2 })
-      .selector('.highlighted')
-        .style({ 'border-width': 3, 'border-color': '#000' })
+      .selector('.faded').style({ 'opacity': 0.2 })
+      .selector('.highlighted').style({ 'border-width': 3, 'border-color': '#000' })
       .update();
   }
 
