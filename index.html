@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BookMap — 홈</title>
+  <title>📚 BookMap — 메인</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -12,33 +12,64 @@
   <header class="bg-blue-600 text-white shadow">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
       <h1 class="text-xl font-bold">📚 BookMap</h1>
-      <nav class="flex gap-6 text-sm">
-        <a href="index.html" class="hover:underline font-semibold">홈</a>
+      <nav class="flex gap-6 text-sm items-center">
+        <a href="index.html" class="hover:underline">홈</a>
         <a href="form.html" class="hover:underline">도서 등록</a>
         <a href="book.html" class="hover:underline">북맵 리스트</a>
+
+        <!-- 검색창 -->
+        <form id="searchForm" class="ml-4 flex">
+          <input type="text" id="searchInput" placeholder="책 제목 또는 저자 검색"
+            class="px-2 py-1 rounded-l border border-gray-300 text-black w-40 md:w-60">
+          <button type="submit" class="px-3 py-1 bg-white text-blue-600 font-semibold rounded-r border border-gray-300 hover:bg-gray-100">
+            검색
+          </button>
+        </form>
       </nav>
     </div>
   </header>
 
-  <!-- 메인 컨텐츠 -->
-  <main class="max-w-4xl mx-auto px-6 py-20 text-center">
-    <h2 class="text-3xl font-bold mb-6">북맵(BookMap)</h2>
-    <p class="text-lg text-gray-600 mb-10">
-      당신의 독서 경험을 통해, 많은 이들에게 독서 지도를 만들어주세요.<br/>
-      북맵은 단계별 · 주제별 독서 큐레이션을 제공하는 새로운 독서 네비게이션 서비스입니다.
-    </p>
+  <!-- 메인 -->
+  <main class="max-w-3xl mx-auto px-6 py-16 text-center">
+    <h2 class="text-3xl font-bold mb-4">📚 BookMap</h2>
+    <p class="text-gray-600 mb-8">당신의 독서 경험을 통해, 많은 이들에게 독서 지도를 만들어주세요.</p>
 
-    <div class="flex justify-center gap-6">
-      <a href="form.html" 
-         class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+    <div class="flex flex-col md:flex-row justify-center gap-6">
+      <a href="form.html" class="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700">
         도서 등록
       </a>
-      <a href="book.html" 
-         class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+      <a href="book.html" class="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700">
         북맵 리스트
       </a>
     </div>
   </main>
 
+  <script>
+    // 검색 기능
+    document.getElementById("searchForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const query = document.getElementById("searchInput").value.trim();
+      if (!query) return;
+
+      const res = await fetch("books.json");
+      const books = await res.json();
+
+      // 책 제목 검색
+      const bookMatch = books.find(b => b.title.trim().toLowerCase() === query.toLowerCase());
+      if (bookMatch) {
+        window.location.href = `map.html?title=${encodeURIComponent(query)}`;
+        return;
+      }
+
+      // 저자 검색
+      const authorMatch = books.find(b => b.author.trim().toLowerCase() === query.toLowerCase());
+      if (authorMatch) {
+        window.location.href = `map.html?author=${encodeURIComponent(query)}`;
+        return;
+      }
+
+      alert("해당 책 제목이나 저자를 찾을 수 없습니다.");
+    });
+  </script>
 </body>
 </html>
