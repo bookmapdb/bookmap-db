@@ -41,8 +41,8 @@
       </div>
 
       <div>
-        <label class="block font-medium mb-1">카테고리</label>
-        <input type="text" id="category" name="category" placeholder="예: 소설, 철학" required class="w-full border px-3 py-2 rounded">
+        <label class="block font-medium mb-1">카테고리 (쉼표로 구분)</label>
+        <input type="text" id="category" name="category" placeholder="예: 소설, 한국문학" required class="w-full border px-3 py-2 rounded">
       </div>
 
       <!-- 도서구분 -->
@@ -103,12 +103,26 @@
     document.getElementById("bookForm").addEventListener("submit", async (e) => {
       e.preventDefault();
 
+      // 폼 데이터 수집
       const formData = Object.fromEntries(new FormData(e.target).entries());
+
+      // ✅ 카테고리를 쉼표로 분리 → 배열로 변환
+      const categories = formData.category
+        .split(",")
+        .map(c => c.trim())
+        .filter(Boolean);
+
+      // 최종 도서 객체
+      const newBook = {
+        ...formData,
+        id: Date.now(),           // 고유 id 생성
+        category: categories,     // 배열 형태
+      };
 
       const res = await fetch("/api/addBook", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(newBook),
       });
 
       const result = await res.json();
