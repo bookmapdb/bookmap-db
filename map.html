@@ -5,24 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BookMap — 관계도</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- D3.js -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
-  <style>
-    .tooltip {
-      position: absolute;
-      text-align: left;
-      background: rgba(0,0,0,0.75);
-      color: white;
-      padding: 6px 10px;
-      border-radius: 6px;
-      font-size: 13px;
-      pointer-events: none;
-      line-height: 1.4;
-    }
-    #map svg {
-      width: 100%;
-      height: 100%;
-    }
-  </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
@@ -30,217 +14,130 @@
   <header class="bg-blue-600 text-white shadow">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
       <h1 class="text-xl font-bold">📚 BookMap</h1>
-      <nav class="flex gap-4 text-sm items-center flex-wrap">
+      <nav class="flex gap-6 text-sm">
         <a href="index.html" class="hover:underline">홈</a>
         <a href="form.html" class="hover:underline">도서 등록</a>
         <a href="book.html" class="hover:underline">북맵 리스트</a>
-
-        <!-- 검색창 -->
-        <form id="searchForm" class="ml-2 flex w-full md:w-auto mt-2 md:mt-0">
-          <input type="text" id="searchInput" placeholder="책 제목 또는 저자 검색"
-            class="flex-1 md:w-60 px-2 py-1 rounded-l border border-gray-300 text-black">
-          <button type="submit" class="px-3 py-1 bg-white text-blue-600 font-semibold rounded-r border border-gray-300 hover:bg-gray-100">
-            검색
-          </button>
-        </form>
+        <a href="map.html" class="hover:underline">관계도</a>
       </nav>
     </div>
   </header>
 
   <!-- 메인 -->
-  <main class="max-w-7xl mx-auto px-3 md:px-6 py-6 md:py-10">
-    <h2 class="text-xl md:text-2xl font-bold mb-4 md:mb-6">📌 도서 관계도 (트리 뷰)</h2>
-    <div id="map" class="bg-white rounded-xl shadow p-2 md:p-4 overflow-hidden" style="height: 70vh; position: relative;"></div>
+  <main class="max-w-6xl mx-auto px-6 py-10">
+    <h2 class="text-2xl font-bold mb-6">📖 도서 관계도</h2>
+    <div id="chart" class="bg-white p-6 rounded-xl shadow"></div>
   </main>
 
   <script>
-    // ✅ 검색 기능
-    document.getElementById("searchForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const query = document.getElementById("searchInput").value.trim();
-      if (!query) return;
+    const API_URL = "https://script.google.com/macros/s/AKfycbywJOW4dOlmDrzood3ka_jizri4K7sFqTJDPG8ibnmDrxXZgFWrFnjMEv38C5pCtjp_/exec";
 
-      const res = await fetch("books.json");
+    async function loadData() {
+      const res = await fetch(API_URL);
       const books = await res.json();
+      drawTree(books);
+    }
 
-      const bookMatch = books.find(b => b.title.trim().toLowerCase() === query.toLowerCase());
-      if (bookMatch) {
-        window.location.href = `map.html?title=${encodeURIComponent(query)}`;
-        return;
-      }
+    function drawTree(books) {
+      // 데이터 변환: 카테고리 → 단계 → 도서 구조
+      const categoryMap = {};
 
-      const authorMatch = books.find(b => b.author.trim().toLowerCase() === query.toLowerCase());
-      if (authorMatch) {
-        window.location.href = `map.html?author=${encodeURIComponent(query)}`;
-        return;
-      }
-
-      alert("해당 책 제목이나 저자를 찾을 수 없습니다.");
-    });
-
-    async function loadMap() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const titleQuery = urlParams.get("title");
-      const authorQuery = urlParams.get("author");
-      const idQuery = urlParams.get("id");
-
-      const res = await fetch("books.json");
-      const books = await res.json();
-
-      let rootBook;
-      if (idQuery) {
-        rootBook = books.find(b => b.id == idQuery);
-      } else if (titleQuery) {
-        rootBook = books.find(b => b.title.trim().toLowerCase() === titleQuery.toLowerCase());
-      } else if (authorQuery) {
-        rootBook = books.find(b => b.author.trim().toLowerCase() === authorQuery.toLowerCase());
-      }
-
-      if (!rootBook) {
-        document.getElementById("map").innerHTML =
-          `<p class="text-gray-500 text-center">해당 도서를 찾을 수 없습니다.</p>`;
-        return;
-      }
-
-      // ✅ 트리 데이터 생성
-      function buildTree(book, allBooks) {
+      books.forEach(book => {
         let categories = [];
-        if (Array.isArray(book.category)) categories = book.category;
-        else if (typeof book.category === "string") categories = book.category.split(",").map(c => c.trim());
+        if (Array.isArray(book.category)) {
+          categories = book.category;
+        } else if (typeof book.category === "string") {
+          categories = book.category.split(",").map(c => c.trim());
+        }
 
-        return {
-          name: book.title,
-          id: book.id,
-          author: book.author,
-          level: book.level,
-          category: book.category,
-          highlight: true,
-          children: [
-            {
-              name: `카테고리`,
-              children: categories.map(cat => ({
-                name: cat,
-                children: allBooks.filter(b =>
-                  (Array.isArray(b.category) ? b.category.includes(cat) : b.category.split(",").map(c => c.trim()).includes(cat))
-                  && b.id !== book.id
-                ).map(b => ({
-                  name: b.title,
-                  id: b.id,
-                  author: b.author,
-                  level: b.level,
-                  category: b.category
-                }))
-              }))
-            },
-            {
-              name: `단계: ${book.level}`,
-              children: allBooks.filter(b => b.level === book.level && b.id !== book.id)
-                .map(b => ({
-                  name: b.title,
-                  id: b.id,
-                  author: b.author,
-                  level: b.level,
-                  category: b.category
-                }))
-            }
-          ]
-        };
-      }
-
-      const treeData = buildTree(rootBook, books);
-
-      // ✅ 반응형 SVG 크기
-      const container = document.getElementById("map");
-      let width = container.clientWidth;
-      let height = container.clientHeight;
-
-      const svg = d3.select("#map").append("svg")
-        .attr("viewBox", `0 0 ${width} ${height}`)
-        .attr("preserveAspectRatio", "xMidYMid meet");
-
-      const g = svg.append("g");
-
-      const zoom = d3.zoom()
-        .scaleExtent([0.5, 2])
-        .on("zoom", (event) => {
-          g.attr("transform", event.transform);
+        categories.forEach(cat => {
+          if (!categoryMap[cat]) categoryMap[cat] = {};
+          if (!categoryMap[cat][book.level]) categoryMap[cat][book.level] = [];
+          categoryMap[cat][book.level].push(book);
         });
+      });
 
-      svg.call(zoom);
+      const data = {
+        name: "BookMap",
+        children: Object.entries(categoryMap).map(([cat, levels]) => ({
+          name: cat,
+          children: Object.entries(levels).map(([level, books]) => ({
+            name: level,
+            children: books.map(b => ({
+              name: b.title,
+              id: b.id
+            }))
+          }))
+        }))
+      };
 
-      const root = d3.hierarchy(treeData);
-      const treeLayout = d3.tree().size([height, width - 160]);
-      treeLayout(root);
+      // 기존 SVG 제거 후 새로 그림
+      d3.select("#chart").selectAll("*").remove();
 
-      const tooltip = d3.select("body").append("div")
-        .attr("class", "tooltip")
-        .style("opacity", 0);
+      const width = 900;
+      const dx = 20;
+      const dy = 200;
 
-      g.selectAll("path")
+      const tree = d3.tree().nodeSize([dx, dy]);
+      const root = d3.hierarchy(data);
+      root.x0 = dy / 2;
+      root.y0 = 0;
+      tree(root);
+
+      let x0 = Infinity;
+      let x1 = -x0;
+      root.each(d => {
+        if (d.x > x1) x1 = d.x;
+        if (d.x < x0) x0 = d.x;
+      });
+
+      const svg = d3.select("#chart").append("svg")
+        .attr("viewBox", [-dy / 3, x0 - dx, width, x1 - x0 + dx * 2])
+        .style("font", "12px sans-serif")
+        .style("user-select", "none");
+
+      const g = svg.append("g")
+        .attr("transform", `translate(${dy / 3},${dx - x0})`);
+
+      const link = g.append("g")
+        .attr("fill", "none")
+        .attr("stroke", "#ccc")
+        .attr("stroke-opacity", 0.6)
+        .attr("stroke-width", 1.5)
+        .selectAll("path")
         .data(root.links())
-        .enter()
-        .append("path")
+        .join("path")
         .attr("d", d3.linkHorizontal()
           .x(d => d.y)
-          .y(d => d.x))
-        .attr("fill", "none")
-        .attr("stroke", "#ccc");
+          .y(d => d.x));
 
-      const node = g.selectAll("g.node")
+      const node = g.append("g")
+        .attr("stroke-linejoin", "round")
+        .attr("stroke-width", 3)
+        .selectAll("g")
         .data(root.descendants())
-        .enter()
-        .append("g")
-        .attr("class", "node")
+        .join("g")
         .attr("transform", d => `translate(${d.y},${d.x})`);
 
       node.append("circle")
-        .attr("r", 6)
-        .attr("fill", d => d.data.highlight ? "#2563eb" : "#fff")
-        .attr("stroke", d => d.data.highlight ? "#1d4ed8" : "#555")
-        .attr("stroke-width", d => d.data.highlight ? 3 : 1.5)
-        .style("cursor", d => d.data.id ? "pointer" : "default")
+        .attr("fill", d => d.children ? "#1d4ed8" : "#10b981")
+        .attr("r", 5)
         .on("click", (event, d) => {
-          if (d.data.id) {
+          if (!d.children && d.data.id) {
             window.location.href = `book-detail.html?id=${d.data.id}`;
           }
-        })
-        .on("mouseover", (event, d) => {
-          if (d.data.author) {
-            tooltip.transition().duration(200).style("opacity", .9);
-            tooltip.html(`
-              <strong>${d.data.name}</strong><br>
-              저자: ${d.data.author}<br>
-              단계: ${d.data.level || "-"}<br>
-              카테고리: ${d.data.category || "-"}
-            `)
-            .style("left", (event.pageX + 15) + "px")
-            .style("top", (event.pageY - 28) + "px");
-          }
-        })
-        .on("mousemove", (event) => {
-          tooltip.style("left", (event.pageX + 15) + "px")
-                 .style("top", (event.pageY - 28) + "px");
-        })
-        .on("mouseout", () => {
-          tooltip.transition().duration(300).style("opacity", 0);
         });
 
       node.append("text")
-        .attr("dy", 3)
-        .attr("x", d => d.children ? -12 : 12)
-        .style("text-anchor", d => d.children ? "end" : "start")
+        .attr("dy", "0.31em")
+        .attr("x", d => d.children ? -10 : 10)
+        .attr("text-anchor", d => d.children ? "end" : "start")
         .text(d => d.data.name)
-        .style("font-weight", d => d.data.highlight ? "bold" : "normal")
-        .style("fill", d => d.data.highlight ? "#1d4ed8" : "#333")
-        .style("cursor", d => d.data.id ? "pointer" : "default")
-        .on("click", (event, d) => {
-          if (d.data.id) {
-            window.location.href = `book-detail.html?id=${d.data.id}`;
-          }
-        });
+        .clone(true).lower()
+        .attr("stroke", "white");
     }
 
-    loadMap();
+    loadData();
   </script>
 </body>
 </html>
