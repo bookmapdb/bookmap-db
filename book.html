@@ -12,10 +12,19 @@
   <header class="bg-blue-600 text-white shadow">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
       <h1 class="text-xl font-bold">📚 BookMap</h1>
-      <nav class="flex gap-6 text-sm">
+      <nav class="flex gap-6 text-sm items-center">
         <a href="index.html" class="hover:underline">홈</a>
         <a href="form.html" class="hover:underline">도서 등록</a>
         <a href="book.html" class="hover:underline">북맵 리스트</a>
+
+        <!-- 검색창 -->
+        <form id="searchForm" class="ml-4 flex">
+          <input type="text" id="searchInput" placeholder="책 제목 또는 저자 검색"
+            class="px-2 py-1 rounded-l border border-gray-300 text-black w-40 md:w-60">
+          <button type="submit" class="px-3 py-1 bg-white text-blue-600 font-semibold rounded-r border border-gray-300 hover:bg-gray-100">
+            검색
+          </button>
+        </form>
       </nav>
     </div>
   </header>
@@ -70,13 +79,11 @@
     }
 
     function renderFilters() {
-      // 고유 카테고리/단계/도서구분 수집
       const categories = new Set();
       const levels = new Set();
       const divisions = new Set();
 
       allBooks.forEach(book => {
-        // 카테고리: 배열 또는 쉼표 구분 문자열 대응
         let cats = [];
         if (Array.isArray(book.category)) {
           cats = book.category;
@@ -91,9 +98,9 @@
 
       const categoryFilter = document.getElementById("categoryFilter");
       categoryFilter.innerHTML = Array.from(categories).map(cat => `
-        <button onclick="window.location.href='map.html?category=${encodeURIComponent(cat)}'"
-          class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-green-200">
-          ${cat} 📌
+        <button onclick="toggleFilter('category','${cat}')"
+          class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">
+          ${cat}
         </button>
       `).join("");
 
@@ -131,7 +138,6 @@
       list.innerHTML = "";
 
       const filtered = allBooks.filter(book => {
-        // 카테고리 비교
         let cats = [];
         if (Array.isArray(book.category)) {
           cats = book.category;
@@ -163,16 +169,10 @@
               카테고리: ${(Array.isArray(book.category) ? book.category.join(", ") : book.category)}
             </p>
             <p class="text-sm text-gray-600">단계: ${book.level}</p>
-            <div class="mt-3 flex gap-2">
-              <a href="book-detail.html?id=${book.id}" 
-                class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
-                상세보기
-              </a>
-              <a href="map.html?id=${book.id}" 
-                class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm">
-                📌 북맵 보기
-              </a>
-            </div>
+            <a href="book-detail.html?id=${book.id}" 
+              class="inline-block mt-3 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+              상세보기
+            </a>
           </div>
         `;
       });
@@ -181,6 +181,30 @@
         list.innerHTML = `<p class="text-gray-500 col-span-full">조건에 맞는 도서가 없습니다.</p>`;
       }
     }
+
+    // 검색 기능
+    document.getElementById("searchForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const query = document.getElementById("searchInput").value.trim();
+      if (!query) return;
+
+      const res = await fetch("books.json");
+      const books = await res.json();
+
+      const bookMatch = books.find(b => b.title.trim().toLowerCase() === query.toLowerCase());
+      if (bookMatch) {
+        window.location.href = `map.html?title=${encodeURIComponent(query)}`;
+        return;
+      }
+
+      const authorMatch = books.find(b => b.author.trim().toLowerCase() === query.toLowerCase());
+      if (authorMatch) {
+        window.location.href = `map.html?author=${encodeURIComponent(query)}`;
+        return;
+      }
+
+      alert("해당 책 제목이나 저자를 찾을 수 없습니다.");
+    });
 
     loadBooks();
   </script>
