@@ -6,30 +6,6 @@
   <title>BookMap — 관계도</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
-  <style>
-    /* 툴팁 스타일 */
-    #tooltip {
-      position: absolute;
-      background: white;
-      border: 1px solid #ddd;
-      padding: 6px;
-      border-radius: 6px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      pointer-events: none;
-      display: none;
-      z-index: 999;
-    }
-    #tooltip img {
-      width: 100px;
-      height: auto;
-      border-radius: 4px;
-    }
-    #tooltip p {
-      margin: 4px 0 0;
-      font-size: 12px;
-      color: #333;
-    }
-  </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
@@ -49,135 +25,230 @@
   <!-- 메인 -->
   <main class="max-w-6xl mx-auto px-6 py-10">
     <h2 class="text-2xl font-bold mb-6">📖 도서 관계도</h2>
-    <div id="chart" class="bg-white rounded-xl shadow p-4"></div>
-  </main>
 
-  <!-- 툴팁 -->
-  <div id="tooltip"></div>
+    <!-- 필터 -->
+    <section class="bg-white p-6 rounded-xl shadow mb-6">
+      <h3 class="font-semibold mb-4">필터</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- 카테고리 -->
+        <div>
+          <h4 class="text-sm font-medium mb-2">카테고리</h4>
+          <div id="categoryFilter" class="flex flex-wrap gap-2"></div>
+        </div>
+        <!-- 단계 -->
+        <div>
+          <h4 class="text-sm font-medium mb-2">단계</h4>
+          <div id="levelFilter" class="flex flex-wrap gap-2"></div>
+        </div>
+        <!-- 도서구분 -->
+        <div>
+          <h4 class="text-sm font-medium mb-2">도서구분</h4>
+          <div id="divisionFilter" class="flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+
+      <!-- 노드 색상 범례 -->
+      <div class="mt-6 flex flex-wrap gap-6 text-sm text-gray-700">
+        <div class="flex items-center gap-2">
+          <span class="w-4 h-4 rounded-full inline-block" style="background-color: blue;"></span>
+          <span>카테고리 / 단계 노드</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-4 h-4 rounded-full inline-block" style="background-color: red;"></span>
+          <span>도서 노드 — 국내서</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-4 h-4 rounded-full inline-block" style="background-color: purple;"></span>
+          <span>도서 노드 — 원서</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-4 h-4 rounded-full inline-block" style="background-color: orange;"></span>
+          <span>도서 노드 — 번역서</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 관계도 차트 -->
+    <section class="bg-white p-6 rounded-xl shadow">
+      <div id="chart" class="w-full h-[600px]"></div>
+    </section>
+  </main>
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbywJOW4dOlmDrzood3ka_jizri4K7sFqTJDPG8ibnmDrxXZgFWrFnjMEv38C5pCtjp_/exec";
 
-    async function loadData() {
+    let allBooks = [];
+    let selectedCategories = new Set();
+    let selectedLevels = new Set();
+    let selectedDivisions = new Set();
+
+    async function loadBooks() {
       const res = await fetch(API_URL);
-      const books = await res.json();
+      allBooks = await res.json();
 
-      // 데이터 구조 변환: 카테고리 → 단계 → 저자 → 책
-      const root = { name: "북맵", children: [] };
-      const categoryMap = new Map();
+      renderFilters();
+      updateGraph();
+    }
 
-      books.forEach(book => {
-        const cats = (typeof book.category === "string")
-          ? book.category.split(",").map(c => c.trim())
-          : book.category;
+    /* ---------- 필터 렌더링 ---------- */
+    function renderFilters() {
+      const categories = new Set();
+      const levels = new Set();
+      const divisions = new Set(["국내서","원서","번역서"]); // 항상 고정 표시
+
+      allBooks.forEach(book => {
+        let cats = [];
+        if (Array.isArray(book.category)) cats = book.category;
+        else if (typeof book.category === "string") cats = book.category.split(",").map(c => c.trim());
+        cats.forEach(c => categories.add(c));
+
+        if (book.level) levels.add(book.level);
+        if (book.division) divisions.add(book.division);
+      });
+
+      document.getElementById("categoryFilter").innerHTML =
+        Array.from(categories).map(cat => `
+          <button onclick="toggleFilter('category','${cat}')"
+            class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">
+            ${cat}
+          </button>`).join("");
+
+      document.getElementById("levelFilter").innerHTML =
+        Array.from(levels).map(level => `
+          <button onclick="toggleFilter('level','${level}')"
+            class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">
+            ${level}
+          </button>`).join("");
+
+      document.getElementById("divisionFilter").innerHTML =
+        Array.from(divisions).map(div => `
+          <button onclick="toggleFilter('division','${div}')"
+            class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">
+            ${div}
+          </button>`).join("");
+    }
+
+    /* ---------- 필터 상태 관리 ---------- */
+    function toggleFilter(type, value) {
+      let set;
+      if (type === "category") set = selectedCategories;
+      if (type === "level") set = selectedLevels;
+      if (type === "division") set = selectedDivisions;
+
+      if (set.has(value)) set.delete(value);
+      else set.add(value);
+
+      updateGraph();
+    }
+
+    function getFilteredBooks() {
+      return allBooks.filter(book => {
+        let cats = Array.isArray(book.category)
+          ? book.category
+          : (typeof book.category === "string" ? book.category.split(",").map(c => c.trim()) : []);
+
+        const categoryMatch = selectedCategories.size === 0 || cats.some(c => selectedCategories.has(c));
+        const levelMatch = selectedLevels.size === 0 || selectedLevels.has(book.level);
+        const divisionMatch = selectedDivisions.size === 0 || selectedDivisions.has(book.division);
+
+        return categoryMatch && levelMatch && divisionMatch;
+      });
+    }
+
+    /* ---------- 관계도 생성 ---------- */
+    function buildHierarchy(books) {
+      const root = { name: "도서", children: [] };
+      const catMap = {};
+
+      books.forEach(b => {
+        let cats = Array.isArray(b.category) ? b.category : b.category.split(",").map(c => c.trim());
 
         cats.forEach(cat => {
-          if (!categoryMap.has(cat)) {
-            categoryMap.set(cat, { name: cat, children: [] });
-            root.children.push(categoryMap.get(cat));
+          if (!catMap[cat]) {
+            catMap[cat] = { name: cat, children: [] };
+            root.children.push(catMap[cat]);
           }
 
-          const catNode = categoryMap.get(cat);
-
-          // 단계 노드
-          let levelNode = catNode.children.find(c => c.name === book.level);
+          let levelNode = catMap[cat].children.find(c => c.name === b.level);
           if (!levelNode) {
-            levelNode = { name: book.level, children: [] };
-            catNode.children.push(levelNode);
+            levelNode = { name: b.level, children: [] };
+            catMap[cat].children.push(levelNode);
           }
 
-          // 저자 노드
-          let authorNode = levelNode.children.find(c => c.name === book.author);
-          if (!authorNode) {
-            authorNode = { name: book.author, children: [] };
-            levelNode.children.push(authorNode);
-          }
-
-          // 책 노드
-          authorNode.children.push({
-            name: book.title,
-            type: "book",
-            id: book.id,
-            publisher: book.publisher,
-            image: book.image
+          levelNode.children.push({
+            name: b.title,
+            id: b.id,
+            author: b.author,
+            division: b.division || "국내서" // 기본값
           });
         });
       });
 
-      renderChart(root);
+      return root;
     }
 
-    function renderChart(data) {
-      const width = 900, dx = 20, dy = 200;
-      const tree = d3.tree().nodeSize([dx, dy]);
-      const diagonal = d3.linkHorizontal().x(d => d.y).y(d => d.x);
+    function updateGraph() {
+      const filteredBooks = getFilteredBooks();
+      const rootData = buildHierarchy(filteredBooks);
+      d3.select("#chart").selectAll("*").remove();
+      drawChart(rootData);
+    }
+
+    /* ---------- D3.js 시각화 ---------- */
+    function drawChart(data) {
+      const width = document.getElementById("chart").clientWidth;
+      const height = document.getElementById("chart").clientHeight;
+
+      const svg = d3.select("#chart")
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+      const g = svg.append("g").attr("transform", "translate(40,40)");
 
       const root = d3.hierarchy(data);
-      tree(root);
+      const treeLayout = d3.tree().size([height - 80, width - 160]);
+      treeLayout(root);
 
-      const svg = d3.select("#chart").append("svg")
-        .attr("viewBox", [-dy / 3, -dx, width, dx * (root.height + 5)])
-        .style("font", "12px sans-serif")
-        .style("user-select", "none");
-
-      const g = svg.append("g")
-        .attr("transform", `translate(${dy/3},0)`);
-
-      // 링크
-      g.append("g")
-        .attr("fill", "none")
-        .attr("stroke", "#ccc")
-        .selectAll("path")
+      g.selectAll(".link")
         .data(root.links())
-        .join("path")
-        .attr("d", diagonal);
+        .enter()
+        .append("line")
+        .attr("class", "link")
+        .attr("stroke", "#ccc")
+        .attr("x1", d => d.source.y)
+        .attr("y1", d => d.source.x)
+        .attr("x2", d => d.target.y)
+        .attr("y2", d => d.target.x);
 
-      // 툴팁
-      const tooltip = d3.select("#tooltip");
-
-      // 노드
-      const node = g.append("g")
-        .selectAll("g")
+      const node = g.selectAll(".node")
         .data(root.descendants())
-        .join("g")
-        .attr("transform", d => `translate(${d.y},${d.x})`)
-        .on("click", (e,d) => {
-          if (d.data.type === "book") {
-            window.location.href = `book-detail.html?id=${d.data.id}`;
-          }
-        })
-        .on("mouseover", (e,d) => {
-          if (d.data.type === "book") {
-            tooltip.style("display", "block")
-              .html(`
-                <img src="${d.data.image}" alt="${d.data.name}" />
-                <p><b>${d.data.name}</b></p>
-                <p>${d.data.publisher}</p>
-              `);
-          }
-        })
-        .on("mousemove", (e) => {
-          tooltip.style("left", (e.pageX + 15) + "px")
-                 .style("top", (e.pageY - 40) + "px");
-        })
-        .on("mouseout", () => {
-          tooltip.style("display", "none");
-        });
+        .enter()
+        .append("g")
+        .attr("class", "node")
+        .attr("transform", d => `translate(${d.y},${d.x})`);
 
       node.append("circle")
         .attr("r", 5)
-        .attr("fill", d => d.data.type === "book" ? "green" : "blue");
+        .attr("fill", d => {
+          if (d.children) return "blue"; // 카테고리/단계 노드
+          if (d.data.division === "원서") return "purple";
+          if (d.data.division === "번역서") return "orange";
+          return "red"; // 국내서
+        })
+        .on("click", (e, d) => {
+          if (!d.children && d.data.id) {
+            window.location.href = `book-detail.html?id=${d.data.id}`;
+          }
+        });
 
       node.append("text")
-        .attr("dy", "0.31em")
-        .attr("x", d => d.children ? -8 : 8)
-        .attr("text-anchor", d => d.children ? "end" : "start")
-        .text(d => d.data.name)
-        .clone(true).lower()
-        .attr("stroke", "white");
+        .attr("dx", 10)
+        .attr("dy", 4)
+        .text(d => d.data.name);
     }
 
-    loadData();
+    loadBooks();
   </script>
 </body>
 </html>
