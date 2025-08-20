@@ -1,63 +1,87 @@
-<!-- ... 위쪽 생략 ... -->
-<form id="bookForm" class="bg-white p-6 rounded-2xl shadow flex flex-col gap-4">
-  <input type="text" id="title" placeholder="제목" class="border rounded-lg px-4 py-2" required>
-  <input type="text" id="author" placeholder="저자" class="border rounded-lg px-4 py-2">
-  <input type="text" id="publisher" placeholder="출판사" class="border rounded-lg px-4 py-2">
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BookMap — 도서 등록</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <!-- 상단 네비게이션 -->
+  <header class="bg-blue-600 text-white shadow">
+    <div class="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
+      <h1 class="text-xl font-bold">📚 BookMap</h1>
+      <nav class="text-sm">
+        <a href="book.html" class="hover:underline">북맵 리스트</a>
+      </nav>
+    </div>
+  </header>
 
-  <input type="text" id="category" placeholder="카테고리 (쉼표 구분)" class="border rounded-lg px-4 py-2">
+  <!-- 메인 컨텐츠 -->
+  <main class="max-w-xl mx-auto px-6 py-10">
+    <h2 class="text-2xl font-bold mb-6 text-center">도서 등록</h2>
 
-  <select id="level" class="border rounded-lg px-4 py-2">
-    <option value="입문">입문</option>
-    <option value="초급">초급</option>
-    <option value="중급">중급</option>
-    <option value="고급">고급</option>
-    <option value="전문">전문</option>
-  </select>
+    <form id="bookForm" class="bg-white p-6 rounded-2xl shadow flex flex-col gap-4">
+      <input type="text" id="title" placeholder="제목" class="border rounded-lg px-4 py-2" required>
+      <input type="text" id="author" placeholder="저자" class="border rounded-lg px-4 py-2">
+      <input type="text" id="publisher" placeholder="출판사" class="border rounded-lg px-4 py-2">
 
-  <input type="url" id="buy_link" placeholder="구매링크 (예: https://yes24.com/...)" class="border rounded-lg px-4 py-2">
+      <input type="text" id="category" placeholder="카테고리 (쉼표 구분)" class="border rounded-lg px-4 py-2">
 
-  <!-- ✅ 추가: 표지 이미지 주소 -->
-  <input type="url" id="image" placeholder="표지 이미지 URL (예: https://...jpg)" class="border rounded-lg px-4 py-2">
+      <select id="level" class="border rounded-lg px-4 py-2">
+        <option value="입문">입문</option>
+        <option value="초급">초급</option>
+        <option value="중급">중급</option>
+        <option value="고급">고급</option>
+        <option value="전문">전문</option>
+      </select>
 
-  <!-- ✅ 등록 이유 -->
-  <textarea id="reason" placeholder="등록 이유를 작성해주세요 (선택)" rows="4" 
-    class="border rounded-lg px-4 py-2"></textarea>
+      <input type="url" id="buy_link" placeholder="구매링크 (예: https://yes24.com/...)" class="border rounded-lg px-4 py-2">
 
-  <button type="submit" class="bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
-    등록하기
-  </button>
-</form>
-<!-- ... 아래 script 부분 수정 ... -->
+      <!-- ✅ 추가: 표지 이미지 주소 -->
+      <input type="url" id="image" placeholder="표지 이미지 URL (예: https://...jpg)" class="border rounded-lg px-4 py-2">
 
-<script>
-  const API_URL = "/api/addBook"; 
+      <!-- ✅ 추가: 등록 이유 -->
+      <textarea id="reason" placeholder="등록 이유를 작성해주세요 (선택)" rows="4" 
+        class="border rounded-lg px-4 py-2"></textarea>
 
-  document.getElementById("bookForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
+      <button type="submit" class="bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
+        등록하기
+      </button>
+    </form>
+  </main>
 
-    const newBook = {
-      id: Date.now(),
-      title: document.getElementById("title").value,
-      author: document.getElementById("author").value,
-      publisher: document.getElementById("publisher").value,
-      category: document.getElementById("category").value,
-      level: document.getElementById("level").value,
-      buy_link: document.getElementById("buy_link").value,
-      image: document.getElementById("image").value,   // ✅ 이미지 주소 추가
-      reason: document.getElementById("reason").value, // ✅ 등록 이유 추가
-    };
+  <script>
+    const API_URL = "/api/addBook"; 
 
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newBook),
+    document.getElementById("bookForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const newBook = {
+        id: Date.now(),
+        title: document.getElementById("title").value,
+        author: document.getElementById("author").value,
+        publisher: document.getElementById("publisher").value,
+        category: document.getElementById("category").value,
+        level: document.getElementById("level").value,
+        buy_link: document.getElementById("buy_link").value,
+        image: document.getElementById("image").value,   // ✅ 이미지 주소
+        reason: document.getElementById("reason").value, // ✅ 등록 이유
+      };
+
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newBook),
+      });
+
+      if (res.ok) {
+        alert("도서가 성공적으로 등록되었습니다!");
+        e.target.reset();
+      } else {
+        alert("등록 중 오류가 발생했습니다.");
+      }
     });
-
-    if (res.ok) {
-      alert("도서가 성공적으로 등록되었습니다!");
-      e.target.reset();
-    } else {
-      alert("등록 중 오류가 발생했습니다.");
-    }
-  });
-</script>
+  </script>
+</body>
+</html>
