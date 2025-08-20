@@ -37,7 +37,7 @@
     const books = await res.json();
 
     let book = null;
-    let mode = "book"; // book or category
+    let mode = "book";
 
     if (bookId) {
       book = books.find(b => String(b.id) === String(bookId));
@@ -58,7 +58,7 @@
     let edges = [];
 
     if (mode === "book") {
-      // --- 📘 도서 중심 트리 ---
+      // 📘 도서 중심
       const bookIdStr = String(book.id);
 
       nodes.push({ data: { id: bookIdStr, label: book.title, type: "book" } });
@@ -75,9 +75,16 @@
         edges.push({ data: { source: bookIdStr, target: "cat-" + cat } });
       });
 
-      // 관련 도서 연결
+      // 저자 처리
+      if (book.author) {
+        nodes.push({ data: { id: "author-" + book.author, label: book.author, type: "author" } });
+        edges.push({ data: { source: bookIdStr, target: "author-" + book.author } });
+      }
+
+      // 관련 도서
       books.forEach(b => {
         if (b.id !== book.id) {
+          // 카테고리 비교
           let otherCats = [];
           if (Array.isArray(b.category)) otherCats = b.category;
           else if (typeof b.category === "string") otherCats = b.category.split(",").map(c => c.trim());
@@ -89,32 +96,59 @@
             }
           });
 
+          // 단계 비교
           if (b.level === book.level) {
             nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
             edges.push({ data: { source: "level-" + b.level, target: String(b.id) } });
+          }
+
+          // 저자 비교
+          if (book.author && b.author === book.author) {
+            nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
+            edges.push({ data: { source: "author-" + book.author, target: String(b.id) } });
           }
         }
       });
 
     } else if (mode === "category") {
-      // --- 🏷️ 카테고리 중심 트리 ---
+      // 🏷️ 카테고리 중심 + 단계 + 저자
       const cat = categoryParam.trim();
-
       nodes.push({ data: { id: "cat-" + cat, label: cat, type: "category" } });
 
+      // 카테고리 안 도서 단계별 분류
+      const grouped = {};
       books.forEach(b => {
         let cats = [];
         if (Array.isArray(b.category)) cats = b.category;
         else if (typeof b.category === "string") cats = b.category.split(",").map(c => c.trim());
 
         if (cats.includes(cat)) {
-          nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
-          edges.push({ data: { source: "cat-" + cat, target: String(b.id) } });
+          if (!grouped[b.level]) grouped[b.level] = [];
+          grouped[b.level].push(b);
         }
+      });
+
+      Object.keys(grouped).forEach(level => {
+        nodes.push({ data: { id: "level-" + level, label: level, type: "level" } });
+        edges.push({ data: { source: "cat-" + cat, target: "level-" + level } });
+
+        grouped[level].forEach(b => {
+          nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
+          edges.push({ data: { source: "level-" + level, target: String(b.id) } });
+
+          // 저자 노드 추가
+          if (b.author) {
+            const authorId = "author-" + b.author;
+            if (!nodes.find(n => n.data.id === authorId)) {
+              nodes.push({ data: { id: authorId, label: b.author, type: "author" } });
+            }
+            edges.push({ data: { source: String(b.id), target: authorId } });
+          }
+        });
       });
     }
 
-    // --- Cytoscape 초기화 ---
+    // Cytoscape 초기화
     cytoscape({
       container: document.getElementById("bookMap"),
       elements: { nodes, edges },
@@ -122,6 +156,7 @@
         { selector: 'node[type="book"]', style: { 'background-color': '#3b82f6', 'label': 'data(label)', 'font-size': 12, 'color': '#fff', 'text-valign': 'center' }},
         { selector: 'node[type="category"]', style: { 'background-color': '#10b981', 'label': 'data(label)', 'shape': 'round-rectangle', 'color': '#fff', 'font-size': 11 }},
         { selector: 'node[type="level"]', style: { 'background-color': '#f59e0b', 'label': 'data(label)', 'shape': 'diamond', 'color': '#fff', 'font-size': 11 }},
+        { selector: 'node[type="author"]', style: { 'background-color': '#8b5cf6', 'label': 'data(label)', 'shape': 'ellipse', 'color': '#fff', 'font-size': 11 }},
         { selector: 'node[type="related"]', style: { 'background-color': '#9ca3af', 'label': 'data(label)', 'font-size': 10, 'color': '#111', 'text-wrap': 'ellipsis', 'text-max-width': 100 }},
         { selector: 'edge', style: { 'width': 2, 'line-color': '#d1d5db', 'target-arrow-shape': 'triangle', 'target-arrow-color': '#d1d5db', 'curve-style': 'bezier' }}
       ],
