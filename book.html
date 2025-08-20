@@ -55,6 +55,128 @@
     </section>
   </main>
 
-  <script src="book.js"></script>
+  <script>
+    let allBooks = [];
+    let selectedCategories = new Set();
+    let selectedLevels = new Set();
+    let selectedDivisions = new Set();
+
+    async function loadBooks() {
+      const res = await fetch("books.json");
+      allBooks = await res.json();
+
+      renderFilters();
+      renderBooks();
+    }
+
+    function renderFilters() {
+      // 고유 카테고리/단계/도서구분 수집
+      const categories = new Set();
+      const levels = new Set();
+      const divisions = new Set();
+
+      allBooks.forEach(book => {
+        // 카테고리: 배열 또는 쉼표 구분 문자열 대응
+        let cats = [];
+        if (Array.isArray(book.category)) {
+          cats = book.category;
+        } else if (typeof book.category === "string") {
+          cats = book.category.split(",").map(c => c.trim());
+        }
+        cats.forEach(c => categories.add(c));
+
+        if (book.level) levels.add(book.level);
+        if (book.division) divisions.add(book.division);
+      });
+
+      const categoryFilter = document.getElementById("categoryFilter");
+      categoryFilter.innerHTML = Array.from(categories).map(cat => `
+        <button onclick="toggleFilter('category','${cat}')"
+          class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">
+          ${cat}
+        </button>
+      `).join("");
+
+      const levelFilter = document.getElementById("levelFilter");
+      levelFilter.innerHTML = Array.from(levels).map(level => `
+        <button onclick="toggleFilter('level','${level}')"
+          class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">
+          ${level}
+        </button>
+      `).join("");
+
+      const divisionFilter = document.getElementById("divisionFilter");
+      divisionFilter.innerHTML = Array.from(divisions).map(div => `
+        <button onclick="toggleFilter('division','${div}')"
+          class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">
+          ${div}
+        </button>
+      `).join("");
+    }
+
+    function toggleFilter(type, value) {
+      let set;
+      if (type === "category") set = selectedCategories;
+      if (type === "level") set = selectedLevels;
+      if (type === "division") set = selectedDivisions;
+
+      if (set.has(value)) set.delete(value);
+      else set.add(value);
+
+      renderBooks();
+    }
+
+    function renderBooks() {
+      const list = document.getElementById("bookList");
+      list.innerHTML = "";
+
+      const filtered = allBooks.filter(book => {
+        // 카테고리 비교
+        let cats = [];
+        if (Array.isArray(book.category)) {
+          cats = book.category;
+        } else if (typeof book.category === "string") {
+          cats = book.category.split(",").map(c => c.trim());
+        }
+
+        const categoryMatch = selectedCategories.size === 0 ||
+          cats.some(c => selectedCategories.has(c));
+
+        const levelMatch = selectedLevels.size === 0 ||
+          selectedLevels.has(book.level);
+
+        const divisionMatch = selectedDivisions.size === 0 ||
+          selectedDivisions.has(book.division);
+
+        return categoryMatch && levelMatch && divisionMatch;
+      });
+
+      filtered.forEach(book => {
+        list.innerHTML += `
+          <div class="bg-white rounded-xl shadow hover:shadow-md transition p-4">
+            <img src="${book.image}" alt="${book.title}"
+              class="w-full h-48 object-cover rounded-md mb-4">
+            <h3 class="text-lg font-bold mb-1 truncate">${book.title}</h3>
+            <p class="text-sm text-gray-600">저자: ${book.author}</p>
+            <p class="text-sm text-gray-600">출판사: ${book.publisher}</p>
+            <p class="text-sm text-gray-600">
+              카테고리: ${(Array.isArray(book.category) ? book.category.join(", ") : book.category)}
+            </p>
+            <p class="text-sm text-gray-600">단계: ${book.level}</p>
+            <a href="detail.html?id=${book.id}" 
+              class="inline-block mt-3 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+              상세보기
+            </a>
+          </div>
+        `;
+      });
+
+      if (filtered.length === 0) {
+        list.innerHTML = `<p class="text-gray-500 col-span-full">조건에 맞는 도서가 없습니다.</p>`;
+      }
+    }
+
+    loadBooks();
+  </script>
 </body>
 </html>
