@@ -5,8 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BookMap — 관계도</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- D3.js -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    /* 툴팁 스타일 */
+    #tooltip {
+      position: absolute;
+      background: white;
+      border: 1px solid #ddd;
+      padding: 6px;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      pointer-events: none;
+      display: none;
+      z-index: 999;
+    }
+    #tooltip img {
+      width: 100px;
+      height: auto;
+      border-radius: 4px;
+    }
+    #tooltip p {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: #333;
+    }
+  </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
@@ -26,8 +49,11 @@
   <!-- 메인 -->
   <main class="max-w-6xl mx-auto px-6 py-10">
     <h2 class="text-2xl font-bold mb-6">📖 도서 관계도</h2>
-    <div id="chart" class="bg-white p-6 rounded-xl shadow"></div>
+    <div id="chart" class="bg-white rounded-xl shadow p-4"></div>
   </main>
+
+  <!-- 툴팁 -->
+  <div id="tooltip"></div>
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbywJOW4dOlmDrzood3ka_jizri4K7sFqTJDPG8ibnmDrxXZgFWrFnjMEv38C5pCtjp_/exec";
@@ -35,102 +61,116 @@
     async function loadData() {
       const res = await fetch(API_URL);
       const books = await res.json();
-      drawTree(books);
-    }
 
-    function drawTree(books) {
-      // 데이터 변환: 카테고리 → 단계 → 도서 구조
-      const categoryMap = {};
+      // 데이터 구조 변환: 카테고리 → 단계 → 저자 → 책
+      const root = { name: "북맵", children: [] };
+      const categoryMap = new Map();
 
       books.forEach(book => {
-        let categories = [];
-        if (Array.isArray(book.category)) {
-          categories = book.category;
-        } else if (typeof book.category === "string") {
-          categories = book.category.split(",").map(c => c.trim());
-        }
+        const cats = (typeof book.category === "string")
+          ? book.category.split(",").map(c => c.trim())
+          : book.category;
 
-        categories.forEach(cat => {
-          if (!categoryMap[cat]) categoryMap[cat] = {};
-          if (!categoryMap[cat][book.level]) categoryMap[cat][book.level] = [];
-          categoryMap[cat][book.level].push(book);
+        cats.forEach(cat => {
+          if (!categoryMap.has(cat)) {
+            categoryMap.set(cat, { name: cat, children: [] });
+            root.children.push(categoryMap.get(cat));
+          }
+
+          const catNode = categoryMap.get(cat);
+
+          // 단계 노드
+          let levelNode = catNode.children.find(c => c.name === book.level);
+          if (!levelNode) {
+            levelNode = { name: book.level, children: [] };
+            catNode.children.push(levelNode);
+          }
+
+          // 저자 노드
+          let authorNode = levelNode.children.find(c => c.name === book.author);
+          if (!authorNode) {
+            authorNode = { name: book.author, children: [] };
+            levelNode.children.push(authorNode);
+          }
+
+          // 책 노드
+          authorNode.children.push({
+            name: book.title,
+            type: "book",
+            id: book.id,
+            publisher: book.publisher,
+            image: book.image
+          });
         });
       });
 
-      const data = {
-        name: "BookMap",
-        children: Object.entries(categoryMap).map(([cat, levels]) => ({
-          name: cat,
-          children: Object.entries(levels).map(([level, books]) => ({
-            name: level,
-            children: books.map(b => ({
-              name: b.title,
-              id: b.id
-            }))
-          }))
-        }))
-      };
+      renderChart(root);
+    }
 
-      // 기존 SVG 제거 후 새로 그림
-      d3.select("#chart").selectAll("*").remove();
-
-      const width = 900;
-      const dx = 20;
-      const dy = 200;
-
+    function renderChart(data) {
+      const width = 900, dx = 20, dy = 200;
       const tree = d3.tree().nodeSize([dx, dy]);
+      const diagonal = d3.linkHorizontal().x(d => d.y).y(d => d.x);
+
       const root = d3.hierarchy(data);
-      root.x0 = dy / 2;
-      root.y0 = 0;
       tree(root);
 
-      let x0 = Infinity;
-      let x1 = -x0;
-      root.each(d => {
-        if (d.x > x1) x1 = d.x;
-        if (d.x < x0) x0 = d.x;
-      });
-
       const svg = d3.select("#chart").append("svg")
-        .attr("viewBox", [-dy / 3, x0 - dx, width, x1 - x0 + dx * 2])
+        .attr("viewBox", [-dy / 3, -dx, width, dx * (root.height + 5)])
         .style("font", "12px sans-serif")
         .style("user-select", "none");
 
       const g = svg.append("g")
-        .attr("transform", `translate(${dy / 3},${dx - x0})`);
+        .attr("transform", `translate(${dy/3},0)`);
 
-      const link = g.append("g")
+      // 링크
+      g.append("g")
         .attr("fill", "none")
         .attr("stroke", "#ccc")
-        .attr("stroke-opacity", 0.6)
-        .attr("stroke-width", 1.5)
         .selectAll("path")
         .data(root.links())
         .join("path")
-        .attr("d", d3.linkHorizontal()
-          .x(d => d.y)
-          .y(d => d.x));
+        .attr("d", diagonal);
 
+      // 툴팁
+      const tooltip = d3.select("#tooltip");
+
+      // 노드
       const node = g.append("g")
-        .attr("stroke-linejoin", "round")
-        .attr("stroke-width", 3)
         .selectAll("g")
         .data(root.descendants())
         .join("g")
-        .attr("transform", d => `translate(${d.y},${d.x})`);
-
-      node.append("circle")
-        .attr("fill", d => d.children ? "#1d4ed8" : "#10b981")
-        .attr("r", 5)
-        .on("click", (event, d) => {
-          if (!d.children && d.data.id) {
+        .attr("transform", d => `translate(${d.y},${d.x})`)
+        .on("click", (e,d) => {
+          if (d.data.type === "book") {
             window.location.href = `book-detail.html?id=${d.data.id}`;
           }
+        })
+        .on("mouseover", (e,d) => {
+          if (d.data.type === "book") {
+            tooltip.style("display", "block")
+              .html(`
+                <img src="${d.data.image}" alt="${d.data.name}" />
+                <p><b>${d.data.name}</b></p>
+                <p>${d.data.publisher}</p>
+              `);
+          }
+        })
+        .on("mousemove", (e) => {
+          tooltip.style("left", (e.pageX + 15) + "px")
+                 .style("top", (e.pageY - 40) + "px");
+        })
+        .on("mouseout", () => {
+          tooltip.style("display", "none");
         });
+
+      node.append("circle")
+        .attr("r", 5)
+        .attr("fill", d => d.data.type === "book" ? "green" : "blue");
 
       node.append("text")
         .attr("dy", "0.31em")
-        .attr("x", d => d.children ? -10 : 10)
+        .attr("x", d => d.children ? -8 : 8)
         .attr("text-anchor", d => d.children ? "end" : "start")
         .text(d => d.data.name)
         .clone(true).lower()
