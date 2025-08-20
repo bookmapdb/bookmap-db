@@ -7,9 +7,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
-
-  <!-- ✅ 상단 네비게이션 -->
-  <header class="bg-blue-600 text-white shadow sticky top-0 z-50">
+  <!-- 상단 네비게이션 -->
+  <header class="bg-blue-600 text-white shadow">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
       <h1 class="text-xl font-bold">📚 BookMap</h1>
       <nav class="flex gap-6 text-sm">
@@ -20,69 +19,34 @@
     </div>
   </header>
 
-  <!-- 메인 컨텐츠 -->
-  <main class="max-w-4xl mx-auto px-6 py-10">
-    <div id="bookDetail" class="bg-white p-8 rounded-2xl shadow">
-      <p class="text-center text-gray-500">로딩 중...</p>
-    </div>
+  <!-- 상세 -->
+  <main class="max-w-3xl mx-auto px-6 py-10">
+    <article id="bookDetail" class="bg-white p-6 rounded-2xl shadow"></article>
   </main>
 
   <script>
-    async function fetchBooks() {
-      const res = await fetch("https://raw.githubusercontent.com/bookmapdb/bookmap-db/main/books.json");
-      return await res.json();
-    }
-
-    function getQueryParam(key) {
-      return new URLSearchParams(window.location.search).get(key);
-    }
-
-    function renderBook(book) {
-      const container = document.getElementById("bookDetail");
-
-      if (!book) {
-        container.innerHTML = `<p class="text-center text-gray-500">해당 도서를 찾을 수 없습니다.</p>`;
-        return;
+    async function loadDetail() {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get("id");
+      const res = await fetch("books.json");
+      const books = await res.json();
+      const book = books.find(b => b.id == id);
+      if (book) {
+        document.getElementById("bookDetail").innerHTML = `
+          <img src="${book.image}" alt="${book.title}" class="w-48 mx-auto mb-6 rounded-lg shadow">
+          <h2 class="text-2xl font-bold mb-4">${book.title}</h2>
+          <p><strong>저자:</strong> ${book.author}</p>
+          <p><strong>출판사:</strong> ${book.publisher}</p>
+          <p><strong>카테고리:</strong> ${book.category}</p>
+          <p><strong>단계:</strong> ${book.level}</p>
+          <p class="mt-4 text-gray-600">${book.reason || "등록 이유 없음"}</p>
+          <div class="mt-6 flex gap-4">
+            <a href="${book.buy_link}" target="_blank" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">구매링크</a>
+            <a href="book.html" class="bg-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300">리스트로 돌아가기</a>
+          </div>`;
       }
-
-      container.innerHTML = `
-        <div class="flex flex-col md:flex-row gap-8">
-          <img src="${book.image || "https://via.placeholder.com/200"}" 
-               alt="${book.title}" 
-               class="w-60 h-80 object-cover rounded-lg shadow">
-          
-          <div class="flex-1">
-            <h2 class="text-2xl font-bold mb-4">${book.title}</h2>
-            <p class="text-gray-700 mb-1"><span class="font-semibold">저자:</span> ${book.author || "-"}</p>
-            <p class="text-gray-700 mb-1"><span class="font-semibold">출판사:</span> ${book.publisher || "-"}</p>
-            <p class="text-blue-600 mb-1"><span class="font-semibold">카테고리:</span> ${book.category || "-"}</p>
-            <p class="text-green-600 mb-4"><span class="font-semibold">단계:</span> ${book.level || "-"}</p>
-
-            <p class="text-gray-800 mb-4">${book.description || "설명이 없습니다."}</p>
-
-            <!-- ✅ 등록 이유 -->
-            ${book.reason ? `
-              <div class="bg-gray-100 p-4 rounded-lg mb-4">
-                <h3 class="font-semibold mb-2">📌 등록 이유</h3>
-                <p class="text-gray-700">${book.reason}</p>
-              </div>
-            ` : ""}
-
-            <a href="${book.buy_link || "#"}" target="_blank"
-               class="inline-block bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">
-               구매링크 바로가기
-            </a>
-          </div>
-        </div>
-      `;
     }
-
-    (async function init() {
-      const id = getQueryParam("id");
-      const books = await fetchBooks();
-      const book = books.find(b => String(b.id) === id);
-      renderBook(book);
-    })();
+    loadDetail();
   </script>
 </body>
 </html>
