@@ -6,6 +6,23 @@
   <title>BookMap — 관계도</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    .tooltip {
+      position: absolute;
+      text-align: left;
+      background: rgba(0,0,0,0.75);
+      color: white;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      pointer-events: none;
+      line-height: 1.4;
+    }
+    #map svg {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
@@ -13,15 +30,15 @@
   <header class="bg-blue-600 text-white shadow">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
       <h1 class="text-xl font-bold">📚 BookMap</h1>
-      <nav class="flex gap-6 text-sm items-center">
+      <nav class="flex gap-4 text-sm items-center flex-wrap">
         <a href="index.html" class="hover:underline">홈</a>
         <a href="form.html" class="hover:underline">도서 등록</a>
         <a href="book.html" class="hover:underline">북맵 리스트</a>
 
         <!-- 검색창 -->
-        <form id="searchForm" class="ml-4 flex">
+        <form id="searchForm" class="ml-2 flex w-full md:w-auto mt-2 md:mt-0">
           <input type="text" id="searchInput" placeholder="책 제목 또는 저자 검색"
-            class="px-2 py-1 rounded-l border border-gray-300 text-black w-40 md:w-60">
+            class="flex-1 md:w-60 px-2 py-1 rounded-l border border-gray-300 text-black">
           <button type="submit" class="px-3 py-1 bg-white text-blue-600 font-semibold rounded-r border border-gray-300 hover:bg-gray-100">
             검색
           </button>
@@ -31,13 +48,13 @@
   </header>
 
   <!-- 메인 -->
-  <main class="max-w-6xl mx-auto px-6 py-10">
-    <h2 class="text-2xl font-bold mb-6">📌 도서 관계도 (트리 뷰)</h2>
-    <div id="map" class="bg-white rounded-xl shadow p-4 overflow-auto" style="height: 600px;"></div>
+  <main class="max-w-7xl mx-auto px-3 md:px-6 py-6 md:py-10">
+    <h2 class="text-xl md:text-2xl font-bold mb-4 md:mb-6">📌 도서 관계도 (트리 뷰)</h2>
+    <div id="map" class="bg-white rounded-xl shadow p-2 md:p-4 overflow-hidden" style="height: 70vh; position: relative;"></div>
   </main>
 
   <script>
-    // ✅ 검색 기능 (네비게이션 공통)
+    // ✅ 검색 기능
     document.getElementById("searchForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const query = document.getElementById("searchInput").value.trim();
@@ -85,7 +102,7 @@
         return;
       }
 
-      // ✅ 카테고리/단계 기반 관계 트리 구성
+      // ✅ 트리 데이터 생성
       function buildTree(book, allBooks) {
         let categories = [];
         if (Array.isArray(book.category)) categories = book.category;
@@ -93,7 +110,10 @@
 
         return {
           name: book.title,
-          id: book.id, // 상세 페이지 이동용
+          id: book.id,
+          author: book.author,
+          level: book.level,
+          category: book.category,
           highlight: true,
           children: [
             {
@@ -103,13 +123,25 @@
                 children: allBooks.filter(b =>
                   (Array.isArray(b.category) ? b.category.includes(cat) : b.category.split(",").map(c => c.trim()).includes(cat))
                   && b.id !== book.id
-                ).map(b => ({ name: b.title, id: b.id }))
+                ).map(b => ({
+                  name: b.title,
+                  id: b.id,
+                  author: b.author,
+                  level: b.level,
+                  category: b.category
+                }))
               }))
             },
             {
               name: `단계: ${book.level}`,
               children: allBooks.filter(b => b.level === book.level && b.id !== book.id)
-                .map(b => ({ name: b.title, id: b.id }))
+                .map(b => ({
+                  name: b.title,
+                  id: b.id,
+                  author: b.author,
+                  level: b.level,
+                  category: b.category
+                }))
             }
           ]
         };
@@ -117,22 +149,34 @@
 
       const treeData = buildTree(rootBook, books);
 
-      // ✅ D3 트리 레이아웃
-      const width = document.getElementById("map").clientWidth;
-      const height = document.getElementById("map").clientHeight;
+      // ✅ 반응형 SVG 크기
+      const container = document.getElementById("map");
+      let width = container.clientWidth;
+      let height = container.clientHeight;
 
       const svg = d3.select("#map").append("svg")
-        .attr("width", width)
-        .attr("height", height)
-        .append("g")
-        .attr("transform", "translate(40,0)");
+        .attr("viewBox", `0 0 ${width} ${height}`)
+        .attr("preserveAspectRatio", "xMidYMid meet");
+
+      const g = svg.append("g");
+
+      const zoom = d3.zoom()
+        .scaleExtent([0.5, 2])
+        .on("zoom", (event) => {
+          g.attr("transform", event.transform);
+        });
+
+      svg.call(zoom);
 
       const root = d3.hierarchy(treeData);
       const treeLayout = d3.tree().size([height, width - 160]);
       treeLayout(root);
 
-      // 링크
-      svg.selectAll("path")
+      const tooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
+
+      g.selectAll("path")
         .data(root.links())
         .enter()
         .append("path")
@@ -142,15 +186,13 @@
         .attr("fill", "none")
         .attr("stroke", "#ccc");
 
-      // 노드
-      const node = svg.selectAll("g.node")
+      const node = g.selectAll("g.node")
         .data(root.descendants())
         .enter()
         .append("g")
         .attr("class", "node")
         .attr("transform", d => `translate(${d.y},${d.x})`);
 
-      // ✅ 원형 노드
       node.append("circle")
         .attr("r", 6)
         .attr("fill", d => d.data.highlight ? "#2563eb" : "#fff")
@@ -161,9 +203,28 @@
           if (d.data.id) {
             window.location.href = `book-detail.html?id=${d.data.id}`;
           }
+        })
+        .on("mouseover", (event, d) => {
+          if (d.data.author) {
+            tooltip.transition().duration(200).style("opacity", .9);
+            tooltip.html(`
+              <strong>${d.data.name}</strong><br>
+              저자: ${d.data.author}<br>
+              단계: ${d.data.level || "-"}<br>
+              카테고리: ${d.data.category || "-"}
+            `)
+            .style("left", (event.pageX + 15) + "px")
+            .style("top", (event.pageY - 28) + "px");
+          }
+        })
+        .on("mousemove", (event) => {
+          tooltip.style("left", (event.pageX + 15) + "px")
+                 .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", () => {
+          tooltip.transition().duration(300).style("opacity", 0);
         });
 
-      // 텍스트
       node.append("text")
         .attr("dy", 3)
         .attr("x", d => d.children ? -12 : 12)
