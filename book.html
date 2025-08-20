@@ -49,9 +49,12 @@
       </div>
     </section>
 
-    <!-- 도서 카드 -->
-    <section id="bookList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <!-- JS로 채워짐 -->
+    <!-- 도서 카드 + 로딩 표시 -->
+    <section id="bookListWrapper">
+      <p id="loadingMsg" class="text-gray-500">📚 데이터를 불러오는 중입니다...</p>
+      <div id="bookList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden">
+        <!-- JS로 채워짐 -->
+      </div>
     </section>
   </main>
 
@@ -64,11 +67,22 @@
     let selectedDivisions = new Set();
 
     async function loadBooks() {
-      const res = await fetch(API_URL);
-      allBooks = await res.json();
+      document.getElementById("loadingMsg").style.display = "block";
+      document.getElementById("bookList").classList.add("hidden");
 
-      renderFilters();
-      renderBooks();
+      try {
+        const res = await fetch(API_URL);
+        allBooks = await res.json();
+
+        renderFilters();
+        renderBooks();
+
+        // 로딩 끝 → 리스트 보여주기
+        document.getElementById("loadingMsg").style.display = "none";
+        document.getElementById("bookList").classList.remove("hidden");
+      } catch (err) {
+        document.getElementById("loadingMsg").textContent = "❌ 데이터를 불러오는 중 오류가 발생했습니다.";
+      }
     }
 
     function renderFilters() {
@@ -162,6 +176,7 @@
               카테고리: ${(Array.isArray(book.category) ? book.category.join(", ") : book.category)}
             </p>
             <p class="text-sm text-gray-600">단계: ${book.level}</p>
+            <p class="text-sm text-gray-600">도서구분: ${book.division || "-"}</p>
             <a href="book-detail.html?id=${book.id}" 
               class="inline-block mt-3 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
               상세보기
