@@ -49,12 +49,10 @@
       </div>
     </section>
 
-    <!-- 도서 카드 + 로딩 표시 -->
-    <section id="bookListWrapper">
-      <p id="loadingMsg" class="text-gray-500">📚 데이터를 불러오는 중입니다...</p>
-      <div id="bookList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 hidden">
-        <!-- JS로 채워짐 -->
-      </div>
+    <!-- 도서 카드 -->
+    <section id="bookList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-center">
+      <!-- 로딩 메시지 -->
+      <p id="loadingMessage" class="text-gray-500 col-span-full">⏳ 도서 목록을 불러오는 중입니다...</p>
     </section>
   </main>
 
@@ -67,22 +65,24 @@
     let selectedDivisions = new Set();
 
     async function loadBooks() {
-      document.getElementById("loadingMsg").style.display = "block";
-      document.getElementById("bookList").classList.add("hidden");
-
       try {
         const res = await fetch(API_URL);
         allBooks = await res.json();
-
         renderFilters();
         renderBooks();
-
-        // 로딩 끝 → 리스트 보여주기
-        document.getElementById("loadingMsg").style.display = "none";
-        document.getElementById("bookList").classList.remove("hidden");
       } catch (err) {
-        document.getElementById("loadingMsg").textContent = "❌ 데이터를 불러오는 중 오류가 발생했습니다.";
+        document.getElementById("bookList").innerHTML =
+          `<p class="text-red-500 col-span-full">데이터를 불러오는 중 오류가 발생했습니다.</p>`;
+      } finally {
+        document.getElementById("loadingMessage").style.display = "none";
       }
+    }
+
+    function normalizeDivision(value) {
+      if (!value) return "국내서";
+      const v = value.trim();
+      if (["국내서", "원서", "번역서"].includes(v)) return v;
+      return "국내서"; // 잘못된 값이 들어오면 기본값
     }
 
     function renderFilters() {
@@ -101,7 +101,7 @@
         cats.forEach(c => categories.add(c));
 
         if (book.level) levels.add(book.level);
-        if (book.division) divisions.add(book.division);
+        if (book.division) divisions.add(normalizeDivision(book.division));
       });
 
       const categoryFilter = document.getElementById("categoryFilter");
@@ -121,7 +121,7 @@
       `).join("");
 
       const divisionFilter = document.getElementById("divisionFilter");
-      divisionFilter.innerHTML = Array.from(divisions).map(div => `
+      divisionFilter.innerHTML = ["국내서", "원서", "번역서"].map(div => `
         <button onclick="toggleFilter('division','${div}')"
           class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">
           ${div}
@@ -159,13 +159,15 @@
         const levelMatch = selectedLevels.size === 0 ||
           selectedLevels.has(book.level);
 
+        const divisionValue = normalizeDivision(book.division);
         const divisionMatch = selectedDivisions.size === 0 ||
-          selectedDivisions.has(book.division);
+          selectedDivisions.has(divisionValue);
 
         return categoryMatch && levelMatch && divisionMatch;
       });
 
       filtered.forEach(book => {
+        const divisionValue = normalizeDivision(book.division);
         list.innerHTML += `
           <div class="bg-white rounded-xl shadow hover:shadow-md transition p-4">
             <img src="${book.image}" alt="${book.title}"
@@ -176,7 +178,7 @@
               카테고리: ${(Array.isArray(book.category) ? book.category.join(", ") : book.category)}
             </p>
             <p class="text-sm text-gray-600">단계: ${book.level}</p>
-            <p class="text-sm text-gray-600">도서구분: ${book.division || "-"}</p>
+            <p class="text-sm text-gray-600">도서구분: ${divisionValue}</p>
             <a href="book-detail.html?id=${book.id}" 
               class="inline-block mt-3 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
               상세보기
