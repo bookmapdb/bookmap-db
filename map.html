@@ -61,7 +61,7 @@
       // 📘 도서 중심
       const bookIdStr = String(book.id);
 
-      nodes.push({ data: { id: bookIdStr, label: book.title, type: "book" } });
+      nodes.push({ data: { id: bookIdStr, label: book.title, type: "book", author: book.author, publisher: book.publisher } });
       nodes.push({ data: { id: "level-" + book.level, label: book.level, type: "level" } });
       edges.push({ data: { source: bookIdStr, target: "level-" + book.level } });
 
@@ -84,27 +84,24 @@
       // 관련 도서
       books.forEach(b => {
         if (b.id !== book.id) {
-          // 카테고리 비교
           let otherCats = [];
           if (Array.isArray(b.category)) otherCats = b.category;
           else if (typeof b.category === "string") otherCats = b.category.split(",").map(c => c.trim());
 
           otherCats.forEach(cat => {
             if (categories.includes(cat)) {
-              nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
+              nodes.push({ data: { id: String(b.id), label: b.title, type: "related", author: b.author, publisher: b.publisher } });
               edges.push({ data: { source: "cat-" + cat, target: String(b.id) } });
             }
           });
 
-          // 단계 비교
           if (b.level === book.level) {
-            nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
+            nodes.push({ data: { id: String(b.id), label: b.title, type: "related", author: b.author, publisher: b.publisher } });
             edges.push({ data: { source: "level-" + b.level, target: String(b.id) } });
           }
 
-          // 저자 비교
           if (book.author && b.author === book.author) {
-            nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
+            nodes.push({ data: { id: String(b.id), label: b.title, type: "related", author: b.author, publisher: b.publisher } });
             edges.push({ data: { source: "author-" + book.author, target: String(b.id) } });
           }
         }
@@ -115,7 +112,6 @@
       const cat = categoryParam.trim();
       nodes.push({ data: { id: "cat-" + cat, label: cat, type: "category" } });
 
-      // 카테고리 안 도서 단계별 분류
       const grouped = {};
       books.forEach(b => {
         let cats = [];
@@ -133,10 +129,9 @@
         edges.push({ data: { source: "cat-" + cat, target: "level-" + level } });
 
         grouped[level].forEach(b => {
-          nodes.push({ data: { id: String(b.id), label: b.title, type: "related" } });
+          nodes.push({ data: { id: String(b.id), label: b.title, type: "related", author: b.author, publisher: b.publisher } });
           edges.push({ data: { source: "level-" + level, target: String(b.id) } });
 
-          // 저자 노드 추가
           if (b.author) {
             const authorId = "author-" + b.author;
             if (!nodes.find(n => n.data.id === authorId)) {
@@ -149,7 +144,7 @@
     }
 
     // Cytoscape 초기화
-    cytoscape({
+    const cy = cytoscape({
       container: document.getElementById("bookMap"),
       elements: { nodes, edges },
       style: [
@@ -168,6 +163,43 @@
         animate: true
       }
     });
+
+    // Hover 시 간단 툴팁 (alert 대신 title 속성)
+    cy.on('mouseover', 'node', function(evt){
+      const node = evt.target;
+      if(node.data('type') === 'book' || node.data('type') === 'related'){
+        node.qtip({
+          content: () => `${node.data('label')}<br>저자: ${node.data('author') || ''}<br>출판사: ${node.data('publisher') || ''}`,
+          show: { event: evt.type },
+          hide: { event: 'mouseout' },
+          style: { classes: 'qtip-blue qtip-shadow' }
+        }, evt);
+      }
+    });
+
+    // 클릭 시 연결 강조
+    cy.on('tap', 'node', function(evt){
+      const node = evt.target;
+      const neighborhood = node.closedNeighborhood();
+
+      cy.elements().addClass('faded');
+      neighborhood.removeClass('faded');
+      node.addClass('highlighted');
+    });
+
+    cy.on('tap', function(evt){
+      if(evt.target === cy){ // 빈 공간 클릭 시 초기화
+        cy.elements().removeClass('faded highlighted');
+      }
+    });
+
+    // 스타일링 클래스
+    cy.style()
+      .selector('.faded')
+        .style({ 'opacity': 0.2 })
+      .selector('.highlighted')
+        .style({ 'border-width': 3, 'border-color': '#000' })
+      .update();
   }
 
   loadBookMap();
