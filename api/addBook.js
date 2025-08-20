@@ -1,50 +1,68 @@
-import { Octokit } from "@octokit/rest";
+import fetch from "node-fetch";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "허용되지 않은 메서드입니다. POST만 가능합니다." });
+    return res.status(405).json({ error: "허용되지 않은 메소드" });
   }
 
   try {
+    const {
+      GITHUB_TOKEN,
+      REPO_OWNER,
+      REPO_NAME,
+      FILE_PATH,
+    } = process.env;
+
+    if (!GITHUB_TOKEN || !REPO_OWNER || !REPO_NAME || !FILE_PATH) {
+      return res.status(500).json({ error: "환경변수가 설정되지 않았습니다." });
+    }
+
     const newBook = req.body;
 
-    // GitHub 저장소 설정
-    const owner = "bookmapdb"; // ✅ 본인 GitHub 유저명/조직명으로 변경
-    const repo = "bookmap-db"; // ✅ 저장소 이름
-    const path = "books.json"; // 저장할 파일
-    const token = process.env.GITHUB_TOKEN; // Vercel 환경변수에 저장
-
-    const octokit = new Octokit({ auth: token });
-
-    // 기존 books.json 가져오기
-    const { data: fileData } = await octokit.repos.getContent({
-      owner,
-      repo,
-      path,
+    // 1. 기존 books.json 가져오기
+    const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+    const getRes = await fetch(url, {
+      headers: {
+        Authorization: `token ${GITHUB_TOKEN}`,
+        Accept: "application/vnd.github.v3+json",
+      },
     });
 
-    const content = Buffer.from(fileData.content, "base64").toString("utf8");
+    if (!getRes.ok) {
+      const msg = await getRes.text();
+      throw new Error(`기존 파일 불러오기 실패: ${msg}`);
+    }
+
+    const fileData = await getRes.json();
+    const content = Buffer.from(fileData.content, "base64").toString("utf-8");
     const books = JSON.parse(content);
 
-    // 새 도서 추가
+    // 2. 새 책 데이터 추가
     books.push(newBook);
 
-    // JSON 문자열 변환 (들여쓰기 포함)
-    const updatedContent = JSON.stringify(books, null, 2);
-
-    // GitHub에 커밋
-    await octokit.repos.createOrUpdateFileContents({
-      owner,
-      repo,
-      path,
-      message: `Add new book: ${newBook.title}`,
-      content: Buffer.from(updatedContent, "utf8").toString("base64"),
-      sha: fileData.sha, // 기존 파일의 SHA 필요
+    // 3. GitHub에 업데이트
+    const updatedContent = Buffer.from(JSON.stringify(books, null, 2)).toString("base64");
+    const putRes = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${GITHUB_TOKEN}`,
+        Accept: "application/vnd.github.v3+json",
+      },
+      body: JSON.stringify({
+        message: `Add new book: ${newBook.title}`,
+        content: updatedContent,
+        sha: fileData.sha,
+      }),
     });
 
-    res.status(200).json({ message: "도서가 성공적으로 등록되었습니다.", book: newBook });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "도서 등록 중 오류 발생", details: error.message });
+    if (!putRes.ok) {
+      const msg = await putRes.text();
+      throw new Error(`파일 업데이트 실패: ${msg}`);
+    }
+
+    return res.status(200).json({ message: "도서 등록 성공!" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: err.message });
   }
 }
