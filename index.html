@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BookMap — 메인</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <!-- 상단 네비게이션 -->
+  <header class="bg-blue-600 text-white shadow">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
+      <h1 class="text-xl font-bold">📚 BookMap</h1>
+      <nav class="text-sm">
+        <span class="font-semibold">홈</span>
+      </nav>
+    </div>
+  </header>
+
+  <!-- 메인 컨텐츠 -->
+  <main class="max-w-3xl mx-auto px-6 py-20 text-center">
+    <h2 class="text-4xl font-extrabold mb-6">BookMap</h2>
+    <p class="text-lg text-gray-600 mb-10 leading-relaxed">
+      당신의 독서 경험을 통해, 많은 이들에게 독서 지도를 만들어주세요.  
+      BookMap은 독서 기록을 모아 지식의 지도를 그려가는 서비스입니다.
+    </p>
+
+    <!-- 버튼 -->
+    <div class="flex justify-center gap-6">
+      <a href="form.html"
+         class="px-6 py-3 bg-blue-600 text-white rounded-xl shadow hover:bg-blue-700 transition">
+        도서 등록
+      </a>
+      <a href="book.html"
+         class="px-6 py-3 bg-gray-200 text-gray-800 rounded-xl shadow hover:bg-gray-300 transition">
+        북맵 리스트
+      </a>
+    </div>
+  </main>
+
+  <!-- 푸터 -->
+  <footer class="bg-gray-100 border-t mt-20">
+    <div class="max-w-5xl mx-auto px-6 py-6 text-center text-sm text-gray-500">
+      © 2025 BookMap. All rights reserved.
+    </div>
+  </footer>
+</body>
+</html>
