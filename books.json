@@ -1,1 +1,52 @@
-[]
+[
+  {
+    "id": 1692525278001,
+    "title": "작별인사",
+    "author": "김영하",
+    "publisher": "복복서가",
+    "category": "소설, 한국문학",
+    "level": "입문",
+    "buy_link": "https://www.yes24.com/Product/Goods/109211273",
+    "description": "인간의 본질과 기억, 그리고 삶의 의미를 탐구하는 김영하 작가의 화제작."
+  },
+  {
+    "id": 1692525278002,
+    "title": "미드나잇 라이브러리",
+    "author": "매트 헤이그",
+    "publisher": "인플루엔셜",
+    "category": "소설, 해외문학",
+    "level": "초급",
+    "buy_link": "https://product.kyobobook.co.kr/detail/S000001804990",
+    "description": "무수한 가능성 속에서 삶의 의미를 찾아가는 철학적 판타지 소설."
+  },
+  {
+    "id": 1692525278003,
+    "title": "공정하다는 착각",
+    "author": "마이클 샌델",
+    "publisher": "와이즈베리",
+    "category": "철학, 사회",
+    "level": "중급",
+    "buy_link": "https://www.aladin.co.kr/shop/wproduct.aspx?ItemId=247194255",
+    "description": "능력주의 사회의 그림자와 정의로운 사회의 의미를 되묻는 철학자의 통찰."
+  },
+  {
+    "id": 1692525278004,
+    "title": "클린 코드",
+    "author": "로버트 C. 마틴",
+    "publisher": "인사이트",
+    "category": "개발, 프로그래밍",
+    "level": "고급",
+    "buy_link": "https://product.kyobobook.co.kr/detail/S000001032003",
+    "description": "개발자라면 반드시 읽어야 할 소프트웨어 장인 정신과 코드 품질에 대한 지침서."
+  },
+  {
+    "id": 1692525278005,
+    "title": "Deep Learning with Python",
+    "author": "François Chollet",
+    "publisher": "Manning",
+    "category": "AI, 머신러닝",
+    "level": "전문",
+    "buy_link": "https://www.manning.com/books/deep-learning-with-python",
+    "description": "Keras 창시자가 직접 쓴 딥러닝 실습 가이드. 실무와 연구를 아우르는 전문서."
+  }
+]
