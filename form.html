@@ -1,117 +1,63 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BookMap — 도서 등록</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-50 text-gray-800">
-  <!-- 상단 네비게이션 -->
-  <header class="bg-blue-600 text-white shadow">
-    <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
-      <h1 class="text-xl font-bold">📚 BookMap</h1>
-      <nav class="text-sm">
-        <a href="index.html" class="hover:underline">홈</a> ·
-        <a href="book.html" class="hover:underline">북맵 리스트</a>
-      </nav>
-    </div>
-  </header>
+<!-- ... 위쪽 생략 ... -->
+<form id="bookForm" class="bg-white p-6 rounded-2xl shadow flex flex-col gap-4">
+  <input type="text" id="title" placeholder="제목" class="border rounded-lg px-4 py-2" required>
+  <input type="text" id="author" placeholder="저자" class="border rounded-lg px-4 py-2">
+  <input type="text" id="publisher" placeholder="출판사" class="border rounded-lg px-4 py-2">
 
-  <!-- 메인 컨텐츠 -->
-  <main class="max-w-2xl mx-auto px-6 py-12">
-    <h2 class="text-2xl font-bold mb-6 text-center">도서 등록</h2>
-    
-    <form id="bookForm" class="bg-white p-8 rounded-2xl shadow space-y-6">
-      <!-- 제목 -->
-      <div>
-        <label class="block text-sm font-medium mb-2">제목</label>
-        <input type="text" name="title" required
-               class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"/>
-      </div>
-      
-      <!-- 저자 -->
-      <div>
-        <label class="block text-sm font-medium mb-2">저자</label>
-        <input type="text" name="author" required
-               class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"/>
-      </div>
-      
-      <!-- 출판사 -->
-      <div>
-        <label class="block text-sm font-medium mb-2">출판사</label>
-        <input type="text" name="publisher"
-               class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"/>
-      </div>
+  <input type="text" id="category" placeholder="카테고리 (쉼표 구분)" class="border rounded-lg px-4 py-2">
 
-      <!-- 카테고리 (쉼표 구분 다중 입력) -->
-      <div>
-        <label class="block text-sm font-medium mb-2">카테고리</label>
-        <input type="text" name="category" placeholder="예: 소설, 자기계발, 경제"
-               class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"/>
-        <p class="text-xs text-gray-500 mt-1">쉼표(,)로 구분해 여러 개 입력 가능</p>
-      </div>
+  <select id="level" class="border rounded-lg px-4 py-2">
+    <option value="입문">입문</option>
+    <option value="초급">초급</option>
+    <option value="중급">중급</option>
+    <option value="고급">고급</option>
+    <option value="전문">전문</option>
+  </select>
 
-      <!-- 단계 -->
-      <div>
-        <label class="block text-sm font-medium mb-2">단계</label>
-        <select name="level" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-          <option value="입문">입문</option>
-          <option value="초급">초급</option>
-          <option value="중급">중급</option>
-          <option value="고급">고급</option>
-          <option value="전문">전문</option>
-        </select>
-      </div>
+  <input type="url" id="buy_link" placeholder="구매링크 (예: https://yes24.com/...)" class="border rounded-lg px-4 py-2">
 
-      <!-- 구매링크 (하나만 입력) -->
-      <div>
-        <label class="block text-sm font-medium mb-2">구매링크</label>
-        <input type="url" name="buy_link" placeholder="예: https://yes24.com/..." 
-               class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"/>
-      </div>
+  <!-- ✅ 추가: 표지 이미지 주소 -->
+  <input type="url" id="image" placeholder="표지 이미지 URL (예: https://...jpg)" class="border rounded-lg px-4 py-2">
 
-      <!-- 등록 버튼 -->
-      <button type="submit"
-              class="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition">
-        등록하기
-      </button>
-    </form>
+  <!-- ✅ 등록 이유 -->
+  <textarea id="reason" placeholder="등록 이유를 작성해주세요 (선택)" rows="4" 
+    class="border rounded-lg px-4 py-2"></textarea>
 
-    <!-- 알림 메시지 -->
-    <div id="message" class="text-center mt-6 text-sm"></div>
-  </main>
+  <button type="submit" class="bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
+    등록하기
+  </button>
+</form>
+<!-- ... 아래 script 부분 수정 ... -->
 
-  <script>
-    const form = document.getElementById("bookForm");
-    const message = document.getElementById("message");
+<script>
+  const API_URL = "/api/addBook"; 
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      message.textContent = "등록 중입니다...";
+  document.getElementById("bookForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-      const formData = new FormData(form);
-      const data = {};
-      formData.forEach((value, key) => (data[key] = value));
+    const newBook = {
+      id: Date.now(),
+      title: document.getElementById("title").value,
+      author: document.getElementById("author").value,
+      publisher: document.getElementById("publisher").value,
+      category: document.getElementById("category").value,
+      level: document.getElementById("level").value,
+      buy_link: document.getElementById("buy_link").value,
+      image: document.getElementById("image").value,   // ✅ 이미지 주소 추가
+      reason: document.getElementById("reason").value, // ✅ 등록 이유 추가
+    };
 
-      try {
-        const response = await fetch("https://bookmap-db.vercel.app/api/addBook", {
-          method: "POST",
-          body: JSON.stringify(data),
-          headers: { "Content-Type": "application/json" },
-        });
-        
-        const result = await response.json();
-        if (response.ok) {
-          message.textContent = "✅ 도서가 성공적으로 등록되었습니다!";
-          form.reset();
-        } else {
-          message.textContent = "⚠️ 등록 실패: " + result.error;
-        }
-      } catch (err) {
-        message.textContent = "❌ 오류 발생: " + err.message;
-      }
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newBook),
     });
-  </script>
-</body>
-</html>
+
+    if (res.ok) {
+      alert("도서가 성공적으로 등록되었습니다!");
+      e.target.reset();
+    } else {
+      alert("등록 중 오류가 발생했습니다.");
+    }
+  });
+</script>
