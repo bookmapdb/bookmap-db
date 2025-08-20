@@ -52,7 +52,8 @@
   </main>
 
   <script>
-    const API_URL = "/api/addBook"; // vercel의 serverless function과 연결됨
+    // ✅ 같은 도메인 (vercel.app) 기준 API 호출
+    const API_URL = "/api/addBook";
 
     document.getElementById("bookForm").addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -69,16 +70,22 @@
         reason: document.getElementById("reason").value, // ✅ 등록 이유 저장
       };
 
-      const res = await fetch("https://bookmap-db.vercel.app/api/addBook", {
-  method: "POST",
-  ...
-});
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newBook),
+        });
 
-      if (res.ok) {
-        alert("도서가 성공적으로 등록되었습니다!");
-        e.target.reset(); // 입력칸 초기화
-      } else {
-        alert("등록 중 오류가 발생했습니다.");
+        if (res.ok) {
+          alert("도서가 성공적으로 등록되었습니다!");
+          e.target.reset(); // 입력칸 초기화
+        } else {
+          alert("등록 중 오류가 발생했습니다.");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("서버와 통신 중 문제가 발생했습니다.");
       }
     });
   </script>
