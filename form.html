@@ -12,19 +12,10 @@
   <header class="bg-blue-600 text-white shadow">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
       <h1 class="text-xl font-bold">📚 BookMap</h1>
-      <nav class="flex gap-6 text-sm items-center">
+      <nav class="flex gap-6 text-sm">
         <a href="index.html" class="hover:underline">홈</a>
         <a href="form.html" class="hover:underline">도서 등록</a>
         <a href="book.html" class="hover:underline">북맵 리스트</a>
-
-        <!-- 검색창 -->
-        <form id="searchForm" class="ml-4 flex">
-          <input type="text" id="searchInput" placeholder="책 제목 또는 저자 검색"
-            class="px-2 py-1 rounded-l border border-gray-300 text-black w-40 md:w-60">
-          <button type="submit" class="px-3 py-1 bg-white text-blue-600 font-semibold rounded-r border border-gray-300 hover:bg-gray-100">
-            검색
-          </button>
-        </form>
       </nav>
     </div>
   </header>
@@ -78,13 +69,13 @@
       <!-- 원서제목 (선택) -->
       <div>
         <label class="block font-medium mb-1">원서 제목 (선택)</label>
-        <input type="text" id="original_title" name="original_title" placeholder="해당되는 경우만" class="w-full border px-3 py-2 rounded">
+        <input type="text" id="original_title" name="original_title" class="w-full border px-3 py-2 rounded">
       </div>
 
       <!-- 원서 구매링크 (선택) -->
       <div>
         <label class="block font-medium mb-1">원서 구매링크 (선택)</label>
-        <input type="url" id="original_buy_link" name="original_buy_link" placeholder="해당되는 경우만" class="w-full border px-3 py-2 rounded">
+        <input type="url" id="original_buy_link" name="original_buy_link" class="w-full border px-3 py-2 rounded">
       </div>
 
       <div>
@@ -109,46 +100,26 @@
   </main>
 
   <script>
-    // ✅ 검색 기능
-    document.getElementById("searchForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const query = document.getElementById("searchInput").value.trim();
-      if (!query) return;
-
-      const res = await fetch("books.json");
-      const books = await res.json();
-
-      // 책 제목 검색
-      const bookMatch = books.find(b => b.title.trim().toLowerCase() === query.toLowerCase());
-      if (bookMatch) {
-        window.location.href = `map.html?title=${encodeURIComponent(query)}`;
-        return;
-      }
-
-      // 저자 검색
-      const authorMatch = books.find(b => b.author.trim().toLowerCase() === query.toLowerCase());
-      if (authorMatch) {
-        window.location.href = `map.html?author=${encodeURIComponent(query)}`;
-        return;
-      }
-
-      alert("해당 책 제목이나 저자를 찾을 수 없습니다.");
-    });
-
-    // ✅ 도서 등록 기능
     document.getElementById("bookForm").addEventListener("submit", async (e) => {
       e.preventDefault();
 
       const formData = Object.fromEntries(new FormData(e.target).entries());
 
-      const res = await fetch("/api/addBook", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      try {
+        const res = await fetch("https://script.google.com/macros/s/AKfycbwcJ2aaqVvEhxcGdJakKjsmizPBNXzScw2NVWsQ2VNammR0bncJpk68NOYcjgUW6wOf/exec", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
+        });
 
-      const result = await res.json();
-      alert(result.message || result.error);
+        const result = await res.json();
+        alert(result.message || "등록되었습니다!");
+
+        e.target.reset();
+      } catch (err) {
+        console.error(err);
+        alert("도서 등록 중 오류가 발생했습니다.");
+      }
     });
   </script>
 </body>
