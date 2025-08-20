@@ -7,37 +7,49 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
-  <!-- 상단 네비게이션 -->
+
+  <!-- ✅ 상단 네비게이션 -->
   <header class="bg-blue-600 text-white shadow">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
       <h1 class="text-xl font-bold">📚 BookMap</h1>
       <nav class="flex gap-6 text-sm">
         <a href="index.html" class="hover:underline">홈</a>
         <a href="form.html" class="hover:underline">도서 등록</a>
-        <a href="book.html" class="hover:underline">북맵 리스트</a>
+        <a href="book.html" class="hover:underline font-semibold">북맵 리스트</a>
       </nav>
     </div>
   </header>
 
-  <!-- 메인 -->
+  <!-- 메인 컨텐츠 -->
   <main class="max-w-6xl mx-auto px-6 py-10">
     <h2 class="text-2xl font-bold mb-6">북맵 리스트</h2>
+
+    <!-- ✅ 필터 영역 -->
     <section class="bg-white p-6 rounded-xl shadow mb-8">
       <h3 class="font-semibold mb-4">필터</h3>
+      
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- 카테고리 버튼 -->
         <div>
           <h4 class="text-sm font-medium mb-2">카테고리</h4>
-          <div id="categoryFilter" class="flex flex-wrap gap-3"></div>
+          <div id="categoryFilter" class="flex flex-wrap gap-2"></div>
         </div>
+
+        <!-- 단계 버튼 -->
         <div>
           <h4 class="text-sm font-medium mb-2">단계</h4>
-          <div id="levelFilter" class="flex flex-wrap gap-3"></div>
+          <div id="levelFilter" class="flex flex-wrap gap-2"></div>
         </div>
       </div>
     </section>
-    <section id="bookList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></section>
+
+    <!-- ✅ 도서 카드 리스트 -->
+    <section id="bookList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- 도서 카드들이 JS로 채워짐 -->
+    </section>
   </main>
 
+  <!-- JS 로드 -->
   <script src="book.js"></script>
 </body>
 </html>
