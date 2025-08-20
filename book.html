@@ -5,14 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BookMap — 북맵 리스트</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    .filter-btn {
-      @apply px-4 py-2 border rounded-lg cursor-pointer transition;
-    }
-    .filter-btn.active {
-      @apply bg-blue-600 text-white border-blue-600;
-    }
-  </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
   <!-- 상단 네비게이션 -->
@@ -32,18 +24,27 @@
 
     <!-- 필터 영역 -->
     <div class="mb-8 bg-white p-6 rounded-2xl shadow">
-      <h3 class="text-lg font-semibold mb-4">카테고리</h3>
-      <div id="categoryButtons" class="flex flex-wrap gap-2 mb-6">
-        <!-- JSON에서 자동 생성 -->
-      </div>
+      <h3 class="text-lg font-semibold mb-4">필터</h3>
+      <div class="flex flex-col gap-4">
+        
+        <!-- 카테고리 필터 (버튼형 다중선택) -->
+        <div>
+          <p class="mb-2 text-sm font-medium">카테고리</p>
+          <div id="categoryButtons" class="flex flex-wrap gap-2"></div>
+        </div>
 
-      <h3 class="text-lg font-semibold mb-4">단계</h3>
-      <div id="levelButtons" class="flex flex-wrap gap-2">
-        <button class="filter-btn" data-level="입문">입문</button>
-        <button class="filter-btn" data-level="초급">초급</button>
-        <button class="filter-btn" data-level="중급">중급</button>
-        <button class="filter-btn" data-level="고급">고급</button>
-        <button class="filter-btn" data-level="전문">전문</button>
+        <!-- 단계 필터 (버튼형 다중선택) -->
+        <div>
+          <p class="mb-2 text-sm font-medium">단계</p>
+          <div id="levelButtons" class="flex flex-wrap gap-2">
+            <button class="level-btn px-4 py-2 border rounded-lg hover:bg-blue-100" data-value="입문">입문</button>
+            <button class="level-btn px-4 py-2 border rounded-lg hover:bg-blue-100" data-value="초급">초급</button>
+            <button class="level-btn px-4 py-2 border rounded-lg hover:bg-blue-100" data-value="중급">중급</button>
+            <button class="level-btn px-4 py-2 border rounded-lg hover:bg-blue-100" data-value="고급">고급</button>
+            <button class="level-btn px-4 py-2 border rounded-lg hover:bg-blue-100" data-value="전문">전문</button>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -56,11 +57,11 @@
   <script>
     const API_URL = "https://raw.githubusercontent.com/bookmapdb/bookmap-db/main/books.json";
     const bookList = document.getElementById("bookList");
-    const categoryButtons = document.getElementById("categoryButtons");
-    const levelButtons = document.getElementById("levelButtons");
+    const categoryButtonsContainer = document.getElementById("categoryButtons");
 
-    let selectedCategories = [];
-    let selectedLevels = [];
+    let selectedCategories = new Set();
+    let selectedLevels = new Set();
+    let allBooks = [];
 
     // 도서 데이터 불러오기
     async function fetchBooks() {
@@ -68,21 +69,110 @@
       return res.json();
     }
 
+    // 도서 리스트 렌더링
+    function renderBooks(books) {
+      bookList.innerHTML = "";
+      if (books.length === 0) {
+        bookList.innerHTML = `<p class="col-span-full text-center text-gray-500">검색된 도서가 없습니다.</p>`;
+        return;
+      }
+
+      books.forEach((book) => {
+        const card = document.createElement("div");
+        card.className = "bg-white rounded-xl shadow hover:shadow-lg transition p-4 flex flex-col";
+
+        card.innerHTML = `
+          <img src="https://cover.openbd.jp/${encodeURIComponent(book.title)}.jpg" 
+               alt="${book.title}" 
+               onerror="this.src='https://via.placeholder.com/150x220?text=No+Cover'" 
+               class="w-full h-56 object-cover rounded-lg mb-4">
+          <h3 class="text-lg font-bold mb-2">${book.title}</h3>
+          <p class="text-sm text-gray-600">저자: ${book.author || "-"}</p>
+          <p class="text-sm text-gray-600">출판사: ${book.publisher || "-"}</p>
+          <p class="text-xs text-gray-500 mt-2">단계: ${book.level || "-"}</p>
+
+          <div class="mt-3 flex gap-2">
+            <a href="book-detail.html?id=${book.id}"
+               class="flex-1 text-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+               상세보기
+            </a>
+            ${book.buy_link ? `
+              <a href="${book.buy_link}" target="_blank"
+                 class="flex-1 text-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                 구매링크
+              </a>
+            ` : ""}
+          </div>
+        `;
+        bookList.appendChild(card);
+      });
+    }
+
     // 카테고리 버튼 생성
     function createCategoryButtons(books) {
       const categories = new Set();
-      books.forEach(book => {
-        if (book.category) {
-          book.category.split(",").forEach(c => categories.add(c.trim()));
+      books.forEach(b => {
+        if (b.category) {
+          b.category.split(",").map(c => c.trim()).forEach(c => categories.add(c));
         }
       });
 
-      categoryButtons.innerHTML = "";
       categories.forEach(cat => {
         const btn = document.createElement("button");
-        btn.className = "filter-btn";
         btn.textContent = cat;
-        btn.dataset.category = cat;
+        btn.className = "category-btn px-4 py-2 border rounded-lg hover:bg-blue-100";
+        btn.dataset.value = cat;
         btn.addEventListener("click", () => {
-          btn.classList.toggle("active");
-          if (selectedCategories
+          if (selectedCategories.has(cat)) {
+            selectedCategories.delete(cat);
+            btn.classList.remove("bg-blue-500", "text-white");
+          } else {
+            selectedCategories.add(cat);
+            btn.classList.add("bg-blue-500", "text-white");
+          }
+          applyFilters();
+        });
+        categoryButtonsContainer.appendChild(btn);
+      });
+    }
+
+    // 단계 버튼 이벤트 등록
+    document.querySelectorAll(".level-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const value = btn.dataset.value;
+        if (selectedLevels.has(value)) {
+          selectedLevels.delete(value);
+          btn.classList.remove("bg-blue-500", "text-white");
+        } else {
+          selectedLevels.add(value);
+          btn.classList.add("bg-blue-500", "text-white");
+        }
+        applyFilters();
+      });
+    });
+
+    // 필터 적용
+    function applyFilters() {
+      let filtered = [...allBooks];
+
+      if (selectedCategories.size > 0) {
+        filtered = filtered.filter(book =>
+          [...selectedCategories].some(c => book.category?.includes(c))
+        );
+      }
+      if (selectedLevels.size > 0) {
+        filtered = filtered.filter(book => selectedLevels.has(book.level));
+      }
+
+      renderBooks(filtered);
+    }
+
+    // 최초 로드
+    (async () => {
+      allBooks = await fetchBooks();
+      createCategoryButtons(allBooks);
+      renderBooks(allBooks);
+    })();
+  </script>
+</body>
+</html>
