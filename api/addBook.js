@@ -1,5 +1,4 @@
 // api/addBook.js
-import fetch from "node-fetch";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -13,37 +12,47 @@ export default async function handler(req, res) {
   const branch = "main";
   const token = process.env.GITHUB_TOKEN;
 
-  // 현재 books.json 불러오기
-  const getUrl = `https://api.github.com/repos/${repo}/contents/${filePath}?ref=${branch}`;
-  const getRes = await fetch(getUrl, {
-    headers: { Authorization: `token ${token}` }
-  });
-  const file = await getRes.json();
-  const content = Buffer.from(file.content, "base64").toString("utf8");
-  const books = JSON.parse(content);
+  try {
+    // 현재 books.json 불러오기
+    const getUrl = `https://api.github.com/repos/${repo}/contents/${filePath}?ref=${branch}`;
+    const getRes = await fetch(getUrl, {
+      headers: { Authorization: `token ${token}` }
+    });
 
-  // 새 책 추가
-  newBook.id = Date.now();
-  books.push(newBook);
+    if (!getRes.ok) {
+      throw new Error("Failed to fetch books.json: " + getRes.statusText);
+    }
 
-  // 다시 저장 (commit)
-  const updateRes = await fetch(getUrl, {
-    method: "PUT",
-    headers: {
-      Authorization: `token ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      message: "Add new book",
-      content: Buffer.from(JSON.stringify(books, null, 2)).toString("base64"),
-      sha: file.sha,
-      branch,
-    }),
-  });
+    const file = await getRes.json();
+    const content = Buffer.from(file.content, "base64").toString("utf8");
+    const books = JSON.parse(content);
 
-  if (updateRes.ok) {
-    res.status(200).json({ message: "Book added successfully!" });
-  } else {
-    res.status(500).json({ error: "Failed to update books.json" });
+    // 새 책 추가
+    newBook.id = Date.now();
+    books.push(newBook);
+
+    // 다시 저장 (commit)
+    const updateRes = await fetch(getUrl, {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: "Add new book",
+        content: Buffer.from(JSON.stringify(books, null, 2)).toString("base64"),
+        sha: file.sha,
+        branch,
+      }),
+    });
+
+    if (updateRes.ok) {
+      return res.status(200).json({ message: "Book added successfully!" });
+    } else {
+      throw new Error("Failed to update books.json");
+    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: err.message });
   }
 }
