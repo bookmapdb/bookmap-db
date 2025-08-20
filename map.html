@@ -164,24 +164,19 @@
       }
     });
 
-    // Hover 시 간단 툴팁 (alert 대신 title 속성)
-    cy.on('mouseover', 'node', function(evt){
+    // 클릭 시 상세 페이지 이동 (book / related 노드만)
+    cy.on('tap', 'node', function(evt){
       const node = evt.target;
       if(node.data('type') === 'book' || node.data('type') === 'related'){
-        node.qtip({
-          content: () => `${node.data('label')}<br>저자: ${node.data('author') || ''}<br>출판사: ${node.data('publisher') || ''}`,
-          show: { event: evt.type },
-          hide: { event: 'mouseout' },
-          style: { classes: 'qtip-blue qtip-shadow' }
-        }, evt);
+        const bookId = node.id();
+        window.location.href = `book-detail.html?id=${bookId}`;
       }
     });
 
-    // 클릭 시 연결 강조
+    // 클릭 시 연결 강조 (탐색 기능 유지)
     cy.on('tap', 'node', function(evt){
       const node = evt.target;
       const neighborhood = node.closedNeighborhood();
-
       cy.elements().addClass('faded');
       neighborhood.removeClass('faded');
       node.addClass('highlighted');
@@ -193,7 +188,6 @@
       }
     });
 
-    // 스타일링 클래스
     cy.style()
       .selector('.faded')
         .style({ 'opacity': 0.2 })
