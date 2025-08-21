@@ -6,24 +6,6 @@
   <title>BookMap — 도서 관계도</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
-  <style>
-    .filter-btn {
-      padding: 6px 12px;
-      border: 1px solid #ccc;
-      border-radius: 20px;
-      margin: 3px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .filter-btn:hover {
-      background-color: #f0f0f0;
-    }
-    .filter-btn.active {
-      background-color: #2563eb;
-      color: white;
-      border-color: #2563eb;
-    }
-  </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
@@ -42,183 +24,153 @@
 
   <!-- 메인 -->
   <main class="max-w-6xl mx-auto px-6 py-10">
-    <h2 class="text-2xl font-bold mb-4">📖 도서 관계도</h2>
-    <p class="mb-6">
-      북맵 관계도는 도서, 저자, 주제, 단계 등과 같은 관계에 따라 연결되는 것을 보여줍니다. 
-      도서명이나 저자 이름에 마우스를 올리면 간단한 설명을 볼 수 있으며, 클릭하시면 해당 도서 상세페이지로 이동합니다.
+    <h2 class="text-2xl font-bold mb-6">📖 도서 관계도</h2>
+    <p class="mb-6 text-gray-700">
+      북맵 관계도는 도서, 저자, 주제, 단계 등과 같은 관계에 따라 연결되는 것을 보여줍니다.<br>
+      도서명이나 저자 이름에 마우스를 올리면 간단한 설명을 볼 수 있으며, 클릭하면 해당 도서 상세페이지로 이동합니다.
     </p>
 
     <!-- 필터 -->
-    <div id="filters" class="bg-white p-4 rounded shadow mb-4 space-y-3">
+    <section class="bg-white p-6 rounded-xl shadow mb-6 space-y-4">
       <div>
-        <strong>카테고리</strong><br>
-        <div id="filter-category"></div>
+        <h3 class="font-semibold mb-2">카테고리</h3>
+        <div id="category-filters" class="flex flex-wrap gap-2"></div>
       </div>
       <div>
-        <strong>단계</strong><br>
-        <div id="filter-level"></div>
+        <h3 class="font-semibold mb-2">단계</h3>
+        <div id="level-filters" class="flex flex-wrap gap-2"></div>
       </div>
       <div>
-        <strong>도서구분</strong><br>
-        <div id="filter-division"></div>
+        <h3 class="font-semibold mb-2">도서구분</h3>
+        <div id="division-filters" class="flex flex-wrap gap-2"></div>
       </div>
       <div>
-        <strong>저자</strong><br>
-        <div id="filter-author"></div>
+        <h3 class="font-semibold mb-2">저자</h3>
+        <div id="author-filters" class="flex flex-wrap gap-2"></div>
       </div>
       <div>
-        <strong>주제</strong><br>
-        <div id="filter-subject"></div>
+        <h3 class="font-semibold mb-2">주제</h3>
+        <div id="subject-filters" class="flex flex-wrap gap-2"></div>
       </div>
-    </div>
+    </section>
 
     <!-- 노드 색상 안내 -->
-    <div class="bg-white p-4 rounded shadow mb-4 flex flex-wrap gap-6 items-center">
-      <div><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="#333"></circle></svg> 큰 주제</div>
-      <div><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="brown"></circle></svg> 세부 주제</div>
-      <div><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="blue"></circle></svg> 저자</div>
-      <div><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="orange"></circle></svg> 카테고리</div>
-      <div><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="green"></circle></svg> 도서구분</div>
-      <div><svg width="16" height="16"><circle cx="8" cy="8" r="6" fill="gray"></circle></svg> 도서</div>
-    </div>
+    <section class="bg-white p-4 rounded-xl shadow mb-6">
+      <div class="flex flex-wrap gap-6 items-center">
+        <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-black"></span> 큰 주제</div>
+        <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-brown-600"></span> 세부 주제</div>
+        <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-blue-500"></span> 저자</div>
+        <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-orange-500"></span> 카테고리</div>
+        <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-green-500"></span> 도서구분</div>
+        <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-gray-400"></span> 도서</div>
+      </div>
+    </section>
 
     <!-- 그래프 -->
-    <div class="bg-white p-4 rounded shadow">
+    <section class="bg-white p-6 rounded-xl shadow">
       <svg id="graph" width="100%" height="600"></svg>
-    </div>
+    </section>
   </main>
 
   <script>
-    const nodeColors = {
-      theme: "#333",
-      subject: "brown",
-      author: "blue",
-      category: "orange",
-      division: "green",
-      book: "gray"
+    const colors = {
+      theme: "#111827",      // 큰 주제 (검은색)
+      subject: "#92400e",    // 세부 주제 (브라운)
+      author: "#2563eb",     // 저자 (파란색)
+      category: "#f59e0b",   // 카테고리 (주황색)
+      division: "#10b981",   // 도서구분 (초록색)
+      book: "#9ca3af"        // 도서 (회색)
     };
 
-    async function loadGraph() {
-      const res = await fetch("books.json");
-      const books = await res.json();
+    // 샘플 데이터 (실제는 fetch로 불러오기)
+    const nodes = [
+      { id: "문학", type: "theme" },
+      { id: "철학", type: "theme" },
+      { id: "사회", type: "category" },
+      { id: "김영하", type: "author" },
+      { id: "작별인사", type: "book" },
+      { id: "입문", type: "division" }
+    ];
 
-      // nodes / links
-      const nodes = [];
-      const links = [];
-      const nodeMap = new Map();
+    const links = [
+      { source: "김영하", target: "작별인사" },
+      { source: "문학", target: "작별인사" },
+      { source: "철학", target: "사회" }
+    ];
 
-      function addNode(id, type) {
-        if (!nodeMap.has(id)) {
-          const node = { id, type };
-          nodeMap.set(id, node);
-          nodes.push(node);
-        }
-        return nodeMap.get(id);
-      }
+    const svg = d3.select("#graph");
+    const width = +svg.node().getBoundingClientRect().width;
+    const height = +svg.attr("height");
 
-      books.forEach(book => {
-        const bookNode = addNode(book.title, "book");
-        if (book.author) {
-          const a = addNode(book.author, "author");
-          links.push({ source: bookNode.id, target: a.id });
-        }
-        if (book.theme) {
-          const t = addNode(book.theme, "theme");
-          links.push({ source: bookNode.id, target: t.id });
-        }
-        if (book.category) {
-          book.category.split(",").map(s=>s.trim()).forEach(c=>{
-            const cat = addNode(c,"category");
-            links.push({ source: bookNode.id, target: cat.id });
-          });
-        }
-        if (book.division) {
-          const d = addNode(book.division, "division");
-          links.push({ source: bookNode.id, target: d.id });
-        }
-        if (book.subject) {
-          (Array.isArray(book.subject)?book.subject:book.subject.split(",")).forEach(s=>{
-            const sub = addNode(s.trim(),"subject");
-            links.push({ source: bookNode.id, target: sub.id });
-          });
-        }
-      });
+    const g = svg.append("g");
 
-      const svg = d3.select("#graph");
-      const width = svg.node().getBoundingClientRect().width;
-      const height = +svg.attr("height");
+    const zoom = d3.zoom().on("zoom", (event) => {
+      g.attr("transform", event.transform);
+    });
+    svg.call(zoom);
 
-      const g = svg.append("g");
+    const simulation = d3.forceSimulation(nodes)
+      .force("link", d3.forceLink(links).id(d => d.id).distance(150))
+      .force("charge", d3.forceManyBody().strength(-400))
+      .force("center", d3.forceCenter(width / 2, height / 2));
 
-      // 줌 적용
-      svg.call(d3.zoom().on("zoom", (event) => {
-        g.attr("transform", event.transform);
-      }));
+    const link = g.append("g")
+      .attr("stroke", "#ccc")
+      .selectAll("line")
+      .data(links)
+      .join("line");
 
-      const link = g.append("g")
-        .attr("stroke", "#ccc")
-        .selectAll("line")
-        .data(links)
-        .enter().append("line");
+    const node = g.append("g")
+      .selectAll("circle")
+      .data(nodes)
+      .join("circle")
+      .attr("r", 18)
+      .attr("fill", d => colors[d.type] || "#999")
+      .call(d3.drag()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended));
 
-      const node = g.append("g")
-        .selectAll("circle")
-        .data(nodes)
-        .enter().append("circle")
-        .attr("r", 8)
-        .attr("fill", d => nodeColors[d.type] || "gray")
-        .call(drag(simulation));
+    const label = g.append("g")
+      .selectAll("text")
+      .data(nodes)
+      .join("text")
+      .text(d => d.id)
+      .attr("font-size", 12)
+      .attr("fill", "#111")   // 검정 텍스트
+      .attr("dy", 4)
+      .attr("text-anchor", "middle");
 
-      const label = g.append("g")
-        .selectAll("text")
-        .data(nodes)
-        .enter().append("text")
-        .text(d => d.id)
-        .attr("font-size", "10px")
-        .attr("dy", -10)
-        .attr("fill", "black");
+    simulation.on("tick", () => {
+      link
+        .attr("x1", d => d.source.x)
+        .attr("y1", d => d.source.y)
+        .attr("x2", d => d.target.x)
+        .attr("y2", d => d.target.y);
 
-      const simulation = d3.forceSimulation(nodes)
-        .force("link", d3.forceLink(links).id(d => d.id).distance(120))
-        .force("charge", d3.forceManyBody().strength(-300))
-        .force("center", d3.forceCenter(width / 2, height / 2));
+      node
+        .attr("cx", d => d.x)
+        .attr("cy", d => d.y);
 
-      simulation.on("tick", () => {
-        link
-          .attr("x1", d => d.source.x)
-          .attr("y1", d => d.source.y)
-          .attr("x2", d => d.target.x)
-          .attr("y2", d => d.target.y);
+      label
+        .attr("x", d => d.x)
+        .attr("y", d => d.y);
+    });
 
-        node
-          .attr("cx", d => d.x)
-          .attr("cy", d => d.y);
-
-        label
-          .attr("x", d => d.x)
-          .attr("y", d => d.y);
-      });
-
-      function drag(simulation) {
-        return d3.drag()
-          .on("start", (event, d) => {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            d.fx = d.x;
-            d.fy = d.y;
-          })
-          .on("drag", (event, d) => {
-            d.fx = event.x;
-            d.fy = event.y;
-          })
-          .on("end", (event, d) => {
-            if (!event.active) simulation.alphaTarget(0);
-            d.fx = null;
-            d.fy = null;
-          });
-      }
+    function dragstarted(event, d) {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x;
+      d.fy = d.y;
     }
-
-    loadGraph();
+    function dragged(event, d) {
+      d.fx = event.x;
+      d.fy = event.y;
+    }
+    function dragended(event, d) {
+      if (!event.active) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+    }
   </script>
 </body>
 </html>
