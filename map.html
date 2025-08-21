@@ -71,6 +71,7 @@
     let selectedCategories = new Set();
     let selectedLevels = new Set();
     let selectedDivisions = new Set();
+    let authorFilter = null; // 🔹 저자 필터 추가
 
     async function loadData() {
       const res = await fetch(API_URL);
@@ -116,7 +117,8 @@
         const cats = Array.isArray(b.category) ? b.category : b.category.split(",").map(c => c.trim());
         return (selectedCategories.size === 0 || cats.some(c => selectedCategories.has(c))) &&
                (selectedLevels.size === 0 || selectedLevels.has(b.level)) &&
-               (selectedDivisions.size === 0 || selectedDivisions.has(b.division));
+               (selectedDivisions.size === 0 || selectedDivisions.has(b.division)) &&
+               (!authorFilter || b.author === authorFilter);
       });
 
       const data = { nodes: [], links: [] };
@@ -130,7 +132,6 @@
           addNode(cat, "category", cat);
           addNode(b.level, "level", b.level);
           addNode(b.subject || "기타", "subject", b.subject || "기타");
-
           addNode(b.id, "book", b.title);
           addNode(b.author, "author", b.author);
 
@@ -165,9 +166,9 @@
         .enter().append("circle")
         .attr("r", 8)
         .attr("fill", d => {
-          if (d.group === "category" || d.group === "level") return "#2563eb"; // 파랑
-          if (d.group === "subject") return "black"; // 주제
-          if (d.group === "author") return "green"; // 저자
+          if (d.group === "category" || d.group === "level") return "#2563eb";
+          if (d.group === "subject") return "black";
+          if (d.group === "author") return "green";
           if (d.group === "book") {
             const book = allBooks.find(b => b.id == d.id);
             if (book.division === "국내서") return "red";
@@ -183,6 +184,9 @@
         .on("click", (e, d) => {
           if (d.group === "book") {
             window.location.href = `book-detail.html?id=${d.id}`;
+          } else if (d.group === "author") {
+            authorFilter = (authorFilter === d.id ? null : d.id); // 토글
+            renderGraph();
           }
         });
 
@@ -201,26 +205,16 @@
             .attr("x2", d => d.target.x)
             .attr("y2", d => d.target.y);
 
-        node.attr("cx", d => d.x)
-            .attr("cy", d => d.y);
-
-        label.attr("x", d => d.x)
-             .attr("y", d => d.y);
+        node.attr("cx", d => d.x).attr("cy", d => d.y);
+        label.attr("x", d => d.x).attr("y", d => d.y);
       });
 
       function dragstarted(event, d) {
         if (!event.active) simulation.alphaTarget(0.3).restart();
         d.fx = d.x; d.fy = d.y;
       }
-
-      function dragged(event, d) {
-        d.fx = event.x; d.fy = event.y;
-      }
-
-      function dragended(event, d) {
-        if (!event.active) simulation.alphaTarget(0);
-        d.fx = null; d.fy = null;
-      }
+      function dragged(event, d) { d.fx = event.x; d.fy = event.y; }
+      function dragended(event, d) { if (!event.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }
     }
 
     loadData();
