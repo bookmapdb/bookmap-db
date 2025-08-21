@@ -24,79 +24,192 @@
   <!-- 도서 등록 폼 -->
   <main class="max-w-3xl mx-auto px-6 py-12">
     <h2 class="text-2xl font-bold mb-6">📖 새 도서 등록</h2>
+    
+    <!-- 임시 저장소 안내 -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <div class="flex items-start">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-blue-800">임시 저장소 사용 중</h3>
+          <div class="mt-2 text-sm text-blue-700">
+            <p>현재 등록한 도서는 브라우저에 임시로 저장됩니다. 페이지를 새로고침하면 데이터가 유지되지만, 브라우저를 완전히 종료하거나 캐시를 삭제하면 사라질 수 있습니다.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <form id="bookForm" class="space-y-4">
-  <input type="text" name="title" placeholder="도서명" class="w-full border p-2 rounded" required>
-  <input type="text" name="author" placeholder="저자" class="w-full border p-2 rounded" required>
-  <input type="text" name="publisher" placeholder="출판사" class="w-full border p-2 rounded">
+      <div>
+        <label class="block text-sm font-medium mb-2">도서명 *</label>
+        <input type="text" name="title" placeholder="도서명을 입력하세요" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+      </div>
 
-  <input type="text" name="category" placeholder="카테고리 (쉼표 구분, 다중선택 가능)" class="w-full border p-2 rounded">
+      <div>
+        <label class="block text-sm font-medium mb-2">저자 *</label>
+        <input type="text" name="author" placeholder="저자명을 입력하세요" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+      </div>
 
-  <select name="level" class="w-full border p-2 rounded">
-    <option value="입문">입문</option>
-    <option value="초급">초급</option>
-    <option value="중급">중급</option>
-    <option value="고급">고급</option>
-  </select>
+      <div>
+        <label class="block text-sm font-medium mb-2">출판사</label>
+        <input type="text" name="publisher" placeholder="출판사를 입력하세요" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+      </div>
 
-  <select name="division" class="w-full border p-2 rounded">
-    <option value="국내서">국내서</option>
-    <option value="번역서">번역서</option>
-    <option value="번역서">원서</option>
-  </select>
+      <div>
+        <label class="block text-sm font-medium mb-2">카테고리</label>
+        <input type="text" name="category" placeholder="예: 소설, 한국문학 (쉼표로 구분)" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+      </div>
 
-  <!-- 대주제 -->
-  <label class="block mb-2">대주제 (theme)</label>
-  <input type="text" id="theme" class="w-full p-2 border rounded mb-4" placeholder="예: 철학, 문학, 사회">
+      <div>
+        <label class="block text-sm font-medium mb-2">단계</label>
+        <select name="level" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <option value="">선택하세요</option>
+          <option value="입문">입문</option>
+          <option value="초급">초급</option>
+          <option value="중급">중급</option>
+          <option value="고급">고급</option>
+          <option value="전문">전문</option>
+        </select>
+      </div>
 
-  <!-- 소주제 -->
-  <label class="block mb-2">소주제 (subject, 쉼표 구분 가능)</label>
-  <input type="text" id="subject" class="w-full p-2 border rounded mb-4" placeholder="예: 정의, 자유, 도서관">
+      <div>
+        <label class="block text-sm font-medium mb-2">도서구분</label>
+        <select name="division" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <option value="">선택하세요</option>
+          <option value="국내서">국내서</option>
+          <option value="번역서">번역서</option>
+          <option value="원서">원서</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-2">대주제 (theme)</label>
+        <input type="text" name="theme" placeholder="예: 철학, 문학, 사회" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium mb-2">소주제 (subject)</label>
+        <input type="text" name="subject" placeholder="예: 정의, 자유, 도서관 (쉼표로 구분)" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+      </div>
       
-  <!-- 단일 구매 링크 -->
-  <input type="url" name="buy_link" placeholder="도서 구매 링크" class="w-full border p-2 rounded">
+      <div>
+        <label class="block text-sm font-medium mb-2">도서 구매 링크</label>
+        <input type="url" name="buy_link" placeholder="https://example.com" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+      </div>
 
-  <!-- 이미지 -->
-  <input type="url" name="image" placeholder="이미지 URL" class="w-full border p-2 rounded">
+      <div>
+        <label class="block text-sm font-medium mb-2">원서 구매 링크</label>
+        <input type="url" name="original_buy_link" placeholder="https://example.com" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+      </div>
 
-  <!-- 설명 -->
-  <textarea name="description" placeholder="도서 설명" class="w-full border p-2 rounded"></textarea>
+      <div>
+        <label class="block text-sm font-medium mb-2">이미지 URL</label>
+        <input type="url" name="image" placeholder="https://example.com/image.jpg" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+      </div>
 
-  <!-- 추천 이유 -->
-  <textarea name="reason" placeholder="추천 이유" class="w-full border p-2 rounded"></textarea>
+      <div>
+        <label class="block text-sm font-medium mb-2">도서 설명</label>
+        <textarea name="description" placeholder="도서에 대한 간단한 설명을 입력하세요" rows="4" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+      </div>
 
-  <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">등록하기</button>
-</form>
+      <div>
+        <label class="block text-sm font-medium mb-2">추천 이유</label>
+        <textarea name="reason" placeholder="이 도서를 추천하는 이유를 입력하세요" rows="3" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+      </div>
 
-    <p id="statusMessage" class="mt-4 text-center font-medium"></p>
+      <div class="flex gap-4">
+        <button type="submit" class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium">
+          등록하기
+        </button>
+        <button type="reset" class="px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+          초기화
+        </button>
+      </div>
+    </form>
+
+    <div id="statusMessage" class="mt-6 p-4 rounded-lg hidden"></div>
   </main>
 
   <script>
     const form = document.getElementById("bookForm");
     const statusMessage = document.getElementById("statusMessage");
 
+    // 로컬 스토리지에서 기존 도서 데이터 불러오기
+    function getStoredBooks() {
+      const stored = localStorage.getItem('bookmap_books');
+      return stored ? JSON.parse(stored) : [];
+    }
+
+    // 로컬 스토리지에 도서 데이터 저장하기
+    function saveBooks(books) {
+      localStorage.setItem('bookmap_books', JSON.stringify(books));
+    }
+
+    // 상태 메시지 표시 함수
+    function showMessage(message, type = 'success') {
+      statusMessage.className = `mt-6 p-4 rounded-lg ${type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`;
+      statusMessage.textContent = message;
+      statusMessage.classList.remove('hidden');
+      
+      // 3초 후 메시지 숨기기
+      setTimeout(() => {
+        statusMessage.classList.add('hidden');
+      }, 3000);
+    }
+
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const formData = new FormData(form);
-      const data = Object.fromEntries(formData.entries());
-
       try {
-        await fetch("https://script.google.com/macros/s/AKfycbywJOW4dOlmDrzood3ka_jizri4K7sFqTJDPG8ibnmDrxXZgFWrFnjMEv38C5pCtjp_/exec", {
-          method: "POST",
-          mode: "no-cors",
-          body: JSON.stringify(data),
-          headers: { "Content-Type": "application/json" },
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData.entries());
+        
+        // ID 생성 (현재 시간 기반)
+        data.id = Date.now();
+        
+        // 빈 값들을 제거하거나 기본값 설정
+        Object.keys(data).forEach(key => {
+          if (!data[key]) {
+            data[key] = "";
+          }
         });
 
-        statusMessage.textContent = "✅ 도서가 성공적으로 등록되었습니다! 3초 후 리스트 페이지로 이동합니다.";
-        statusMessage.className = "mt-4 text-green-600 text-center font-bold";
-
+        // 기존 도서 목록 가져오기
+        const books = getStoredBooks();
+        
+        // 새 도서 추가
+        books.push(data);
+        
+        // 저장
+        saveBooks(books);
+        
+        // 성공 메시지 표시
+        showMessage("✅ 도서가 성공적으로 등록되었습니다! 3초 후 리스트 페이지로 이동합니다.");
+        
+        // 폼 초기화
+        form.reset();
+        
+        // 3초 후 리스트 페이지로 이동
         setTimeout(() => {
           window.location.href = "book.html";
         }, 3000);
+        
       } catch (error) {
-        statusMessage.textContent = "❌ 등록 중 오류가 발생했습니다.";
-        statusMessage.className = "mt-4 text-red-600 text-center font-bold";
+        console.error('등록 오류:', error);
+        showMessage("❌ 등록 중 오류가 발생했습니다. 다시 시도해주세요.", 'error');
+      }
+    });
+
+    // 폼 검증
+    form.addEventListener('input', (e) => {
+      const target = e.target;
+      if (target.required && !target.value.trim()) {
+        target.classList.add('border-red-300');
+      } else {
+        target.classList.remove('border-red-300');
       }
     });
   </script>
