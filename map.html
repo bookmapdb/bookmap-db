@@ -17,7 +17,7 @@
         <a href="index.html" class="hover:underline">홈</a>
         <a href="form.html" class="hover:underline">도서 등록</a>
         <a href="book.html" class="hover:underline">북맵 리스트</a>
-        <a href="map.html" class="hover:underline">관계도</a>
+        <a href="map.html" class="hover:underline">북맵 보기</a>
       </nav>
     </div>
   </header>
@@ -27,49 +27,28 @@
     <h2 class="text-2xl font-bold mb-6">📖 도서 관계도</h2>
 
     <!-- 필터 -->
-    <section class="bg-white p-6 rounded-xl shadow mb-8">
-      <h3 class="font-semibold mb-4">필터</h3>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <!-- 카테고리 -->
-        <div>
-          <h4 class="text-sm font-medium mb-2">카테고리</h4>
-          <div id="categoryFilter" class="flex flex-wrap gap-2"></div>
-        </div>
-
-        <!-- 단계 -->
-        <div>
-          <h4 class="text-sm font-medium mb-2">단계</h4>
-          <div id="levelFilter" class="flex flex-wrap gap-2"></div>
-        </div>
-
-        <!-- 도서구분 -->
-        <div>
-          <h4 class="text-sm font-medium mb-2">도서구분</h4>
-          <div id="divisionFilter" class="flex flex-wrap gap-2"></div>
-        </div>
-      </div>
-
-      <!-- 노드 색상 안내 -->
-      <div class="mt-4 flex flex-wrap gap-6 text-sm text-gray-600">
-        <span class="flex items-center gap-2">
-          <span class="w-3 h-3 rounded-full bg-blue-600"></span> 카테고리 / 단계 노드
-        </span>
-        <span class="flex items-center gap-2">
-          <span class="w-3 h-3 rounded-full bg-red-500"></span> 도서 노드 — 국내서
-        </span>
-        <span class="flex items-center gap-2">
-          <span class="w-3 h-3 rounded-full bg-purple-600"></span> 도서 노드 — 원서
-        </span>
-        <span class="flex items-center gap-2">
-          <span class="w-3 h-3 rounded-full bg-orange-500"></span> 도서 노드 — 번역서
-        </span>
+    <section class="bg-white p-4 rounded-xl shadow mb-6">
+      <h3 class="font-semibold mb-2">필터</h3>
+      <div class="flex flex-wrap gap-3 text-sm">
+        <div id="categoryFilter" class="flex gap-2 flex-wrap"></div>
+        <div id="levelFilter" class="flex gap-2 flex-wrap"></div>
+        <div id="divisionFilter" class="flex gap-2 flex-wrap"></div>
       </div>
     </section>
 
-    <!-- 관계도 -->
-    <section class="bg-white p-6 rounded-xl shadow">
-      <svg id="bookMap" width="100%" height="600"></svg>
+    <!-- 그래프 영역 -->
+    <div id="map" class="bg-white rounded-xl shadow p-2 overflow-auto">
+      <svg id="svgMap" class="w-full h-[600px]"></svg>
+    </div>
+
+    <!-- 안내문구 -->
+    <section class="mt-6 text-sm text-gray-600 bg-gray-100 p-4 rounded-lg">
+      <h4 class="font-semibold mb-2">🎨 노드 색상 안내</h4>
+      <ul class="list-disc list-inside space-y-1">
+        <li><span class="font-bold text-blue-600">파랑:</span> 국내서</li>
+        <li><span class="font-bold text-green-600">초록:</span> 원서</li>
+        <li><span class="font-bold text-purple-600">보라:</span> 번역서</li>
+      </ul>
     </section>
   </main>
 
@@ -91,12 +70,12 @@
     function renderFilters() {
       const categories = new Set();
       const levels = new Set();
-      const divisions = new Set(["국내서", "원서", "번역서"]); // 항상 표시
+      const divisions = new Set(["국내서","원서","번역서"]); // 항상 고정 노출
 
       allBooks.forEach(book => {
-        let cats = [];
-        if (Array.isArray(book.category)) cats = book.category;
-        else if (typeof book.category === "string") cats = book.category.split(",").map(c => c.trim());
+        let cats = (typeof book.category === "string")
+          ? book.category.split(",").map(c => c.trim())
+          : book.category || [];
         cats.forEach(c => categories.add(c));
 
         if (book.level) levels.add(book.level);
@@ -105,20 +84,26 @@
 
       const categoryFilter = document.getElementById("categoryFilter");
       categoryFilter.innerHTML = Array.from(categories).map(cat => `
-        <button onclick="toggleFilter('category','${cat}')" 
-          class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">${cat}</button>
+        <button onclick="toggleFilter('category','${cat}')"
+          class="px-3 py-1 rounded-full border border-gray-300 hover:bg-blue-100">
+          ${cat}
+        </button>
       `).join("");
 
       const levelFilter = document.getElementById("levelFilter");
       levelFilter.innerHTML = Array.from(levels).map(level => `
-        <button onclick="toggleFilter('level','${level}')" 
-          class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">${level}</button>
+        <button onclick="toggleFilter('level','${level}')"
+          class="px-3 py-1 rounded-full border border-gray-300 hover:bg-blue-100">
+          ${level}
+        </button>
       `).join("");
 
       const divisionFilter = document.getElementById("divisionFilter");
       divisionFilter.innerHTML = Array.from(divisions).map(div => `
-        <button onclick="toggleFilter('division','${div}')" 
-          class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">${div}</button>
+        <button onclick="toggleFilter('division','${div}')"
+          class="px-3 py-1 rounded-full border border-gray-300 hover:bg-blue-100">
+          ${div}
+        </button>
       `).join("");
     }
 
@@ -128,135 +113,150 @@
       if (type === "level") set = selectedLevels;
       if (type === "division") set = selectedDivisions;
 
-      if (set.has(value)) set.delete(value);
-      else set.add(value);
-
+      if (set.has(value)) set.delete(value); else set.add(value);
       renderGraph();
     }
 
     function renderGraph() {
-      const svg = d3.select("#bookMap");
+      const svg = d3.select("#svgMap");
       svg.selectAll("*").remove();
 
-      const width = document.getElementById("bookMap").clientWidth;
+      const width = document.getElementById("map").clientWidth;
       const height = 600;
 
-      const filteredBooks = allBooks.filter(book => {
-        let cats = [];
-        if (Array.isArray(book.category)) cats = book.category;
-        else if (typeof book.category === "string") cats = book.category.split(",").map(c => c.trim());
+      // 필터 적용
+      const filtered = allBooks.filter(book => {
+        let cats = (typeof book.category === "string")
+          ? book.category.split(",").map(c => c.trim())
+          : book.category || [];
 
-        const categoryMatch = selectedCategories.size === 0 || cats.some(c => selectedCategories.has(c));
-        const levelMatch = selectedLevels.size === 0 || selectedLevels.has(book.level);
-        const divisionMatch = selectedDivisions.size === 0 || selectedDivisions.has(book.division);
+        const categoryMatch = selectedCategories.size === 0 ||
+          cats.some(c => selectedCategories.has(c));
+
+        const levelMatch = selectedLevels.size === 0 ||
+          selectedLevels.has(book.level);
+
+        const divisionMatch = selectedDivisions.size === 0 ||
+          selectedDivisions.has(book.division);
 
         return categoryMatch && levelMatch && divisionMatch;
       });
 
-      const nodes = [{ id: "도서", type: "root" }];
-      const links = [];
+      const root = { name: "도서", children: [] };
+      const categoryMap = {};
 
-      filteredBooks.forEach(book => {
-        let cats = [];
-        if (Array.isArray(book.category)) cats = book.category;
-        else if (typeof book.category === "string") cats = book.category.split(",").map(c => c.trim());
-
+      filtered.forEach(book => {
+        let cats = (typeof book.category === "string")
+          ? book.category.split(",").map(c => c.trim())
+          : book.category || [];
         cats.forEach(cat => {
-          if (!nodes.find(n => n.id === cat)) nodes.push({ id: cat, type: "category" });
-          links.push({ source: "도서", target: cat });
-
-          if (!nodes.find(n => n.id === book.level)) nodes.push({ id: book.level, type: "level" });
-          links.push({ source: cat, target: book.level });
-
-          if (!nodes.find(n => n.id === book.title)) nodes.push({ id: book.title, type: "book", division: book.division, bookId: book.id });
-          links.push({ source: book.level, target: book.title });
+          if (!categoryMap[cat]) {
+            categoryMap[cat] = { name: cat, children: [] };
+            root.children.push(categoryMap[cat]);
+          }
+          categoryMap[cat].children.push(book);
         });
       });
 
-      const simulation = d3.forceSimulation(nodes)
-        .force("link", d3.forceLink(links).id(d => d.id).distance(120))
-        .force("charge", d3.forceManyBody().strength(-400))
-        .force("center", d3.forceCenter(width / 2, height / 2));
+      const g = svg.append("g")
+        .attr("transform", `translate(${width / 2},${height / 2})`);
 
-      const link = svg.append("g")
-        .attr("stroke", "#aaa")
-        .selectAll("line")
-        .data(links)
-        .enter().append("line");
+      if (window.innerWidth < 768) {
+        // 📱 모바일 → 세로 트리
+        const treeLayout = d3.tree().size([height, width - 200]);
+        const hierarchy = d3.hierarchy(root);
+        treeLayout(hierarchy);
 
-      const node = svg.append("g")
-        .selectAll("circle")
-        .data(nodes)
-        .enter().append("circle")
-        .attr("r", 6)
-        .attr("fill", d => {
-          if (d.type === "root") return "blue";
-          if (d.type === "category") return "blue";
-          if (d.type === "level") return "blue";
-          if (d.type === "book") {
-            if (d.division === "국내서") return "red";
-            if (d.division === "원서") return "purple";
-            if (d.division === "번역서") return "orange";
-          }
-          return "gray";
-        })
-        .on("click", (event, d) => {
-          if (d.type === "book") {
-            window.location.href = `book-detail.html?id=${d.bookId}`;
-          }
-        })
-        .call(d3.drag()
-          .on("start", dragstarted)
-          .on("drag", dragged)
-          .on("end", dragended));
+        const links = g.selectAll(".link")
+          .data(hierarchy.links())
+          .enter().append("line")
+          .attr("class", "link")
+          .attr("x1", d => d.source.y - width/2 + 100)
+          .attr("y1", d => d.source.x - height/2)
+          .attr("x2", d => d.target.y - width/2 + 100)
+          .attr("y2", d => d.target.x - height/2)
+          .attr("stroke", "#ccc");
 
-      const label = svg.append("g")
-        .selectAll("text")
-        .data(nodes)
-        .enter().append("text")
-        .text(d => d.id)
-        .attr("x", 8)
-        .attr("y", 4)
-        .style("font-size", "12px")
-        .style("fill", "#333")
-        .on("click", (event, d) => {
-          if (d.type === "book") {
-            window.location.href = `book-detail.html?id=${d.bookId}`;
-          }
-        });
+        const nodes = g.selectAll(".node")
+          .data(hierarchy.descendants())
+          .enter().append("g")
+          .attr("class", "node")
+          .attr("transform", d => `translate(${d.y - width/2 + 100},${d.x - height/2})`);
 
-      simulation.on("tick", () => {
-        link
-          .attr("x1", d => d.source.x)
-          .attr("y1", d => d.source.y)
-          .attr("x2", d => d.target.x)
-          .attr("y2", d => d.target.y);
+        nodes.append("circle")
+          .attr("r", 6)
+          .attr("fill", d => getNodeColor(d.data));
 
-        node
-          .attr("cx", d => d.x)
-          .attr("cy", d => d.y);
+        nodes.append("text")
+          .attr("dy", 3)
+          .attr("x", 12)
+          .text(d => d.data.title || d.data.name)
+          .style("font-size", "12px")
+          .style("cursor", "pointer")
+          .on("click", (event, d) => {
+            if (d.data.id) {
+              window.location.href = `book-detail.html?id=${d.data.id}`;
+            }
+          });
 
-        label
-          .attr("x", d => d.x + 10)
-          .attr("y", d => d.y + 4);
-      });
+      } else {
+        // 🖥 데스크탑 → 원형 radial cluster
+        const radius = Math.min(width, height) / 2 - 50;
+        const cluster = d3.cluster().size([2 * Math.PI, radius]);
+        const hierarchy = d3.hierarchy(root);
+        cluster(hierarchy);
 
-      function dragstarted(event, d) {
-        if (!event.active) simulation.alphaTarget(0.3).restart();
-        d.fx = d.x;
-        d.fy = d.y;
+        const links = g.selectAll(".link")
+          .data(hierarchy.links())
+          .enter().append("path")
+          .attr("class", "link")
+          .attr("d", d3.linkRadial()
+            .angle(d => d.x)
+            .radius(d => d.y))
+          .attr("fill", "none")
+          .attr("stroke", "#ccc");
+
+        const nodes = g.selectAll(".node")
+          .data(hierarchy.descendants())
+          .enter().append("g")
+          .attr("class", "node")
+          .attr("transform", d => `
+            rotate(${d.x * 180 / Math.PI - 90})
+            translate(${d.y},0)
+          `);
+
+        nodes.append("circle")
+          .attr("r", 6)
+          .attr("fill", d => getNodeColor(d.data))
+          .style("cursor", d => d.data.id ? "pointer" : "default")
+          .on("click", (event, d) => {
+            if (d.data.id) {
+              window.location.href = `book-detail.html?id=${d.data.id}`;
+            }
+          });
+
+        nodes.append("text")
+          .attr("dy", "0.31em")
+          .attr("x", d => d.x < Math.PI ? 8 : -8)
+          .attr("text-anchor", d => d.x < Math.PI ? "start" : "end")
+          .attr("transform", d => d.x >= Math.PI ? "rotate(180)" : null)
+          .text(d => d.data.title || d.data.name)
+          .style("font-size", "12px")
+          .style("cursor", "pointer")
+          .on("click", (event, d) => {
+            if (d.data.id) {
+              window.location.href = `book-detail.html?id=${d.data.id}`;
+            }
+          });
       }
+    }
 
-      function dragged(event, d) {
-        d.fx = event.x;
-        d.fy = event.y;
-      }
-
-      function dragended(event, d) {
-        if (!event.active) simulation.alphaTarget(0);
-        d.fx = null;
-        d.fy = null;
-      }
+    function getNodeColor(data) {
+      if (!data.division) return "#999";
+      if (data.division === "국내서") return "#1d4ed8";
+      if (data.division === "원서") return "#16a34a";
+      if (data.division === "번역서") return "#9333ea";
+      return "#999";
     }
 
     loadBooks();
