@@ -51,6 +51,7 @@
       <div class="mt-6 flex flex-wrap gap-6 text-sm">
         <div class="flex items-center gap-2"><span class="w-3 h-3 bg-blue-600 rounded-full"></span> 카테고리/단계 노드</div>
         <div class="flex items-center gap-2"><span class="w-3 h-3 bg-black rounded-full"></span> 주제 노드</div>
+        <div class="flex items-center gap-2"><span class="w-3 h-3 bg-green-600 rounded-full"></span> 저자 노드</div>
         <div class="flex items-center gap-2"><span class="w-3 h-3 bg-red-500 rounded-full"></span> 도서(국내)</div>
         <div class="flex items-center gap-2"><span class="w-3 h-3 bg-purple-500 rounded-full"></span> 도서(원서)</div>
         <div class="flex items-center gap-2"><span class="w-3 h-3 bg-orange-500 rounded-full"></span> 도서(번역서)</div>
@@ -59,7 +60,7 @@
 
     <!-- 관계도 -->
     <section class="bg-white p-6 rounded-xl shadow">
-      <div id="map" class="w-full h-[700px]"></div>
+      <div id="map" class="w-full h-[800px]"></div>
     </section>
   </main>
 
@@ -131,9 +132,12 @@
           addNode(b.subject || "기타", "subject", b.subject || "기타");
 
           addNode(b.id, "book", b.title);
+          addNode(b.author, "author", b.author);
+
           data.links.push({ source: cat, target: b.level });
           data.links.push({ source: b.level, target: b.subject || "기타" });
           data.links.push({ source: b.subject || "기타", target: b.id });
+          data.links.push({ source: b.id, target: b.author });
         });
       });
 
@@ -162,7 +166,8 @@
         .attr("r", 8)
         .attr("fill", d => {
           if (d.group === "category" || d.group === "level") return "#2563eb"; // 파랑
-          if (d.group === "subject") return "black"; // 주제 노드
+          if (d.group === "subject") return "black"; // 주제
+          if (d.group === "author") return "green"; // 저자
           if (d.group === "book") {
             const book = allBooks.find(b => b.id == d.id);
             if (book.division === "국내서") return "red";
