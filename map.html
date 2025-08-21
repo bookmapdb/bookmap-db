@@ -3,19 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BookMap — 관계도</title>
+  <title>BookMap — 북맵 보기</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
   <style>
-    body { margin: 0; background: #f9fafb; }
-    .node text { font-size: 12px; fill: #333; }
-    .link { stroke: #999; stroke-opacity: 0.6; }
+    #network {
+      width: 100%;
+      height: 80vh; /* 화면 전체 차지 */
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
   </style>
 </head>
-<body class="text-gray-800">
+<body class="bg-gray-50 text-gray-800">
 
   <!-- 상단 네비게이션 -->
-  <header class="bg-blue-600 text-white shadow fixed top-0 left-0 w-full z-10">
+  <header class="bg-blue-600 text-white shadow">
     <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
       <h1 class="text-xl font-bold">📚 BookMap</h1>
       <nav class="flex gap-6 text-sm">
@@ -27,168 +30,170 @@
     </div>
   </header>
 
-  <!-- 메인 (SVG 전체 화면) -->
-  <main class="w-full h-screen pt-20">
-    <svg id="graph" width="100%" height="100%"></svg>
+  <!-- 메인 -->
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <h2 class="text-2xl font-bold mb-6">북맵 관계도</h2>
 
-    <!-- 안내 문구 -->
-    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white shadow px-4 py-2 rounded-lg text-sm flex gap-4">
-      <span>🔵 도서</span>
-      <span>⚫ 주제</span>
-      <span>🟢 저자</span>
-      <span>🟣 카테고리</span>
-      <span>🟠 단계</span>
-      <span>🔴 도서구분</span>
+    <!-- 필터 -->
+    <section class="bg-white p-6 rounded-xl shadow mb-6">
+      <h3 class="font-semibold mb-4">필터</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+          <h4 class="text-sm font-medium mb-2">카테고리</h4>
+          <div id="categoryFilter" class="flex flex-wrap gap-2"></div>
+        </div>
+        <div>
+          <h4 class="text-sm font-medium mb-2">단계</h4>
+          <div id="levelFilter" class="flex flex-wrap gap-2"></div>
+        </div>
+        <div>
+          <h4 class="text-sm font-medium mb-2">도서구분</h4>
+          <div id="divisionFilter" class="flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 네트워크 그래프 -->
+    <div id="network"></div>
+
+    <!-- 범례 -->
+    <div class="mt-6 bg-white p-4 rounded-xl shadow text-sm text-gray-700">
+      <h4 class="font-semibold mb-2">노드 색상 안내</h4>
+      <ul class="space-y-1">
+        <li><span class="inline-block w-4 h-4 rounded-full bg-black mr-2"></span>주제</li>
+        <li><span class="inline-block w-4 h-4 rounded-full bg-blue-500 mr-2"></span>저자</li>
+        <li><span class="inline-block w-4 h-4 rounded-full bg-purple-500 mr-2"></span>카테고리</li>
+        <li><span class="inline-block w-4 h-4 rounded-full bg-green-500 mr-2"></span>도서구분 (국내/원서/번역)</li>
+        <li><span class="inline-block w-4 h-4 rounded-full bg-gray-200 border mr-2"></span>도서 (책 제목)</li>
+      </ul>
     </div>
   </main>
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbywJOW4dOlmDrzood3ka_jizri4K7sFqTJDPG8ibnmDrxXZgFWrFnjMEv38C5pCtjp_/exec";
 
-    async function loadData() {
+    let allBooks = [];
+    let selectedCategories = new Set();
+    let selectedLevels = new Set();
+    let selectedDivisions = new Set();
+    let network;
+
+    async function loadBooks() {
       const res = await fetch(API_URL);
-      const books = await res.json();
-      renderGraph(books);
+      allBooks = await res.json();
+      renderFilters();
+      renderNetwork();
     }
 
-    function renderGraph(books) {
-      const nodes = [];
-      const links = [];
+    function renderFilters() {
+      const categories = new Set();
+      const levels = new Set();
+      const divisions = new Set();
 
-      const nodeById = new Map();
-
-      // 노드 추가 함수
-      function addNode(id, label, type) {
-        if (!nodeById.has(id)) {
-          const node = { id, label, type };
-          nodeById.set(id, node);
-          nodes.push(node);
-        }
-        return nodeById.get(id);
-      }
-
-      books.forEach(book => {
-        // 주제 노드 (검은색)
-        const themeNode = addNode("theme-" + book.theme, book.theme || "미정", "theme");
-
-        // 도서 노드 (파랑)
-        const bookNode = addNode("book-" + book.id, book.title, "book");
-        links.push({ source: themeNode.id, target: bookNode.id });
-
-        // 저자 노드 (초록)
-        if (book.author) {
-          const authorNode = addNode("author-" + book.author, book.author, "author");
-          links.push({ source: bookNode.id, target: authorNode.id });
-        }
-
-        // 카테고리 노드 (보라)
+      allBooks.forEach(book => {
         if (book.category) {
-          const categories = book.category.split(",").map(c => c.trim());
-          categories.forEach(cat => {
-            const catNode = addNode("cat-" + cat, cat, "category");
-            links.push({ source: bookNode.id, target: catNode.id });
-          });
+          book.category.split(",").map(c => c.trim()).forEach(c => categories.add(c));
         }
-
-        // 단계 노드 (주황)
-        if (book.level) {
-          const levelNode = addNode("level-" + book.level, book.level, "level");
-          links.push({ source: bookNode.id, target: levelNode.id });
-        }
-
-        // 도서구분 노드 (빨강, 짧게 표기)
-        if (book.division) {
-          const divLabel = book.division.replace("도서", ""); // "국내서" 그대로, "원서", "번역서"도 짧게
-          const divisionNode = addNode("division-" + divLabel, divLabel, "division");
-          links.push({ source: bookNode.id, target: divisionNode.id });
-        }
+        if (book.level) levels.add(book.level);
+        if (book.division) divisions.add(book.division);
       });
 
-      const svg = d3.select("#graph");
-      const width = window.innerWidth;
-      const height = window.innerHeight;
+      document.getElementById("categoryFilter").innerHTML = Array.from(categories).map(cat => `
+        <button onclick="toggleFilter('category','${cat}')"
+          class="px-3 py-1 border rounded-full text-sm hover:bg-blue-100">${cat}</button>
+      `).join("");
 
-      // 줌/드래그 활성화
-      const zoom = d3.zoom().on("zoom", (event) => {
-        g.attr("transform", event.transform);
-      });
-      svg.call(zoom);
+      document.getElementById("levelFilter").innerHTML = Array.from(levels).map(level => `
+        <button onclick="toggleFilter('level','${level}')"
+          class="px-3 py-1 border rounded-full text-sm hover:bg-blue-100">${level}</button>
+      `).join("");
 
-      const g = svg.append("g");
-
-      const link = g.append("g")
-        .attr("stroke", "#aaa")
-        .selectAll("line")
-        .data(links)
-        .enter().append("line")
-        .attr("class", "link");
-
-      const node = g.append("g")
-        .selectAll("circle")
-        .data(nodes)
-        .enter().append("circle")
-        .attr("r", 14)
-        .attr("fill", d => {
-          if (d.type === "book") return "#2563eb"; // 파랑
-          if (d.type === "theme") return "#111111"; // 검정
-          if (d.type === "author") return "#16a34a"; // 초록
-          if (d.type === "category") return "#9333ea"; // 보라
-          if (d.type === "level") return "#f97316"; // 주황
-          if (d.type === "division") return "#dc2626"; // 빨강
-          return "#999";
-        })
-        .call(drag(simulation));
-
-      const label = g.append("g")
-        .selectAll("text")
-        .data(nodes)
-        .enter().append("text")
-        .text(d => d.label)
-        .attr("x", 18)
-        .attr("y", 4);
-
-      const simulation = d3.forceSimulation(nodes)
-        .force("link", d3.forceLink(links).id(d => d.id).distance(100))
-        .force("charge", d3.forceManyBody().strength(-400))
-        .force("center", d3.forceCenter(width / 2, height / 2))
-        .on("tick", ticked);
-
-      function ticked() {
-        link
-          .attr("x1", d => d.source.x)
-          .attr("y1", d => d.source.y)
-          .attr("x2", d => d.target.x)
-          .attr("y2", d => d.target.y);
-
-        node
-          .attr("cx", d => d.x)
-          .attr("cy", d => d.y);
-
-        label
-          .attr("x", d => d.x + 18)
-          .attr("y", d => d.y + 4);
-      }
-
-      function drag(simulation) {
-        return d3.drag()
-          .on("start", (event, d) => {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            d.fx = d.x;
-            d.fy = d.y;
-          })
-          .on("drag", (event, d) => {
-            d.fx = event.x;
-            d.fy = event.y;
-          })
-          .on("end", (event, d) => {
-            if (!event.active) simulation.alphaTarget(0);
-            d.fx = null;
-            d.fy = null;
-          });
-      }
+      document.getElementById("divisionFilter").innerHTML = Array.from(divisions).map(div => `
+        <button onclick="toggleFilter('division','${div}')"
+          class="px-3 py-1 border rounded-full text-sm hover:bg-blue-100">${div}</button>
+      `).join("");
     }
 
-    loadData();
+    function toggleFilter(type, value) {
+      let set = type === "category" ? selectedCategories :
+                type === "level" ? selectedLevels : selectedDivisions;
+      if (set.has(value)) set.delete(value);
+      else set.add(value);
+      renderNetwork();
+    }
+
+    function renderNetwork() {
+      const nodes = [];
+      const edges = [];
+
+      const filtered = allBooks.filter(book => {
+        const cats = book.category ? book.category.split(",").map(c => c.trim()) : [];
+        const categoryMatch = selectedCategories.size === 0 || cats.some(c => selectedCategories.has(c));
+        const levelMatch = selectedLevels.size === 0 || selectedLevels.has(book.level);
+        const divisionMatch = selectedDivisions.size === 0 || selectedDivisions.has(book.division);
+        return categoryMatch && levelMatch && divisionMatch;
+      });
+
+      const addedNodes = new Set();
+
+      filtered.forEach(book => {
+        // 주제 노드 (검은색)
+        if (book.subject && !addedNodes.has("subject-" + book.subject)) {
+          nodes.push({ id: "subject-" + book.subject, label: book.subject, color: "black", font: { color: "white" } });
+          addedNodes.add("subject-" + book.subject);
+        }
+
+        // 저자 노드 (파란색)
+        if (book.author && !addedNodes.has("author-" + book.author)) {
+          nodes.push({ id: "author-" + book.author, label: book.author, color: "#3B82F6", font: { color: "white" } });
+          addedNodes.add("author-" + book.author);
+        }
+
+        // 카테고리 노드 (보라색)
+        const cats = book.category ? book.category.split(",").map(c => c.trim()) : [];
+        cats.forEach(c => {
+          if (!addedNodes.has("cat-" + c)) {
+            nodes.push({ id: "cat-" + c, label: c, color: "#8B5CF6", font: { color: "white" } });
+            addedNodes.add("cat-" + c);
+          }
+        });
+
+        // 도서구분 노드 (초록색) — 국내/원서/번역
+        if (book.division && !addedNodes.has("div-" + book.division)) {
+          nodes.push({ id: "div-" + book.division, label: book.division, color: "#10B981", font: { color: "white" } });
+          addedNodes.add("div-" + book.division);
+        }
+
+        // 도서 노드 (책 제목)
+        nodes.push({ id: "book-" + book.id, label: book.title, shape: "box", color: "#E5E7EB" });
+
+        // 관계 연결
+        if (book.subject) edges.push({ from: "subject-" + book.subject, to: "book-" + book.id });
+        if (book.author) edges.push({ from: "author-" + book.author, to: "book-" + book.id });
+        cats.forEach(c => edges.push({ from: "cat-" + c, to: "book-" + book.id }));
+        if (book.division) edges.push({ from: "div-" + book.division, to: "book-" + book.id });
+      });
+
+      const container = document.getElementById("network");
+      const data = { nodes: new vis.DataSet(nodes), edges: new vis.DataSet(edges) };
+      const options = {
+        physics: { stabilization: false },
+        interaction: { dragNodes: true, dragView: true, zoomView: true }
+      };
+
+      if (network) network.destroy();
+      network = new vis.Network(container, data, options);
+
+      // 도서 클릭 시 상세 페이지 이동
+      network.on("click", params => {
+        if (params.nodes.length > 0 && params.nodes[0].startsWith("book-")) {
+          const bookId = params.nodes[0].replace("book-", "");
+          window.location.href = `book-detail.html?id=${bookId}`;
+        }
+      });
+    }
+
+    loadBooks();
   </script>
 </body>
 </html>
