@@ -26,10 +26,15 @@
   <main class="max-w-7xl mx-auto px-6 py-10">
     <h2 class="text-2xl font-bold mb-6">📖 도서 관계도</h2>
 
+    <!-- 로딩 표시 -->
+    <div id="loading" class="text-center text-gray-500 my-10">
+      ⏳ 북맵 관계도를 로딩중입니다. 잠시만 기다려주세요. 감사합니다.
+    </div>
+
     <!-- 필터 -->
-    <section class="bg-white p-6 rounded-xl shadow mb-6">
+    <section id="filterSection" class="bg-white p-6 rounded-xl shadow mb-6 hidden">
       <h3 class="font-semibold mb-4">필터</h3>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
         <!-- 카테고리 -->
         <div>
           <h4 class="text-sm font-medium mb-2">카테고리</h4>
@@ -45,13 +50,18 @@
           <h4 class="text-sm font-medium mb-2">도서구분</h4>
           <div id="divisionFilter" class="flex flex-wrap gap-2"></div>
         </div>
+        <!-- 저자 -->
+        <div>
+          <h4 class="text-sm font-medium mb-2">저자</h4>
+          <div id="authorFilter" class="flex flex-wrap gap-2"></div>
+        </div>
       </div>
 
       <!-- 범례 -->
       <div class="mt-6 flex flex-wrap gap-6 text-sm">
-        <div class="flex items-center gap-2"><span class="w-3 h-3 bg-blue-600 rounded-full"></span> 카테고리/단계 노드</div>
-        <div class="flex items-center gap-2"><span class="w-3 h-3 bg-black rounded-full"></span> 주제 노드</div>
-        <div class="flex items-center gap-2"><span class="w-3 h-3 bg-green-600 rounded-full"></span> 저자 노드</div>
+        <div class="flex items-center gap-2"><span class="w-3 h-3 bg-blue-600 rounded-full"></span> 카테고리/단계</div>
+        <div class="flex items-center gap-2"><span class="w-3 h-3 bg-black rounded-full"></span> 주제</div>
+        <div class="flex items-center gap-2"><span class="w-3 h-3 bg-green-600 rounded-full"></span> 저자</div>
         <div class="flex items-center gap-2"><span class="w-3 h-3 bg-red-500 rounded-full"></span> 도서(국내)</div>
         <div class="flex items-center gap-2"><span class="w-3 h-3 bg-purple-500 rounded-full"></span> 도서(원서)</div>
         <div class="flex items-center gap-2"><span class="w-3 h-3 bg-orange-500 rounded-full"></span> 도서(번역서)</div>
@@ -59,7 +69,7 @@
     </section>
 
     <!-- 관계도 -->
-    <section class="bg-white p-6 rounded-xl shadow">
+    <section id="mapSection" class="bg-white p-6 rounded-xl shadow hidden">
       <div id="map" class="w-full h-[800px]"></div>
     </section>
   </main>
@@ -71,11 +81,14 @@
     let selectedCategories = new Set();
     let selectedLevels = new Set();
     let selectedDivisions = new Set();
-    let authorFilter = null; // 🔹 저자 필터 추가
+    let selectedAuthors = new Set();
 
     async function loadData() {
       const res = await fetch(API_URL);
       allBooks = await res.json();
+      document.getElementById("loading").classList.add("hidden");
+      document.getElementById("filterSection").classList.remove("hidden");
+      document.getElementById("mapSection").classList.remove("hidden");
       renderFilters();
       renderGraph();
     }
@@ -84,11 +97,13 @@
       const categories = new Set();
       const levels = new Set();
       const divisions = new Set();
+      const authors = new Set();
 
       allBooks.forEach(b => {
         (Array.isArray(b.category) ? b.category : b.category.split(",")).forEach(c => categories.add(c.trim()));
         if (b.level) levels.add(b.level);
         if (b.division) divisions.add(b.division);
+        if (b.author) authors.add(b.author);
       });
 
       document.getElementById("categoryFilter").innerHTML = [...categories].map(c => `
@@ -102,23 +117,32 @@
       document.getElementById("divisionFilter").innerHTML = [...divisions].map(d => `
         <button onclick="toggleFilter('division','${d}')" class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">${d}</button>
       `).join("");
+
+      document.getElementById("authorFilter").innerHTML = [...authors].map(a => `
+        <button onclick="toggleFilter('author','${a}')" class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-green-100">${a}</button>
+      `).join("");
     }
 
     function toggleFilter(type, value) {
-      let set = type === "category" ? selectedCategories : type === "level" ? selectedLevels : selectedDivisions;
+      let set = type === "category" ? selectedCategories 
+              : type === "level" ? selectedLevels 
+              : type === "division" ? selectedDivisions 
+              : selectedAuthors;
+
       set.has(value) ? set.delete(value) : set.add(value);
       renderGraph();
     }
 
     function renderGraph() {
-      d3.select("#map").html(""); // 초기화
+      d3.select("#map").html("");
 
       const filtered = allBooks.filter(b => {
         const cats = Array.isArray(b.category) ? b.category : b.category.split(",").map(c => c.trim());
+        const themes = b.theme ? b.theme.split(",").map(t => t.trim()) : ["기타"];
         return (selectedCategories.size === 0 || cats.some(c => selectedCategories.has(c))) &&
                (selectedLevels.size === 0 || selectedLevels.has(b.level)) &&
                (selectedDivisions.size === 0 || selectedDivisions.has(b.division)) &&
-               (!authorFilter || b.author === authorFilter);
+               (selectedAuthors.size === 0 || selectedAuthors.has(b.author));
       });
 
       const data = { nodes: [], links: [] };
@@ -128,17 +152,21 @@
 
       filtered.forEach(b => {
         const categories = Array.isArray(b.category) ? b.category : b.category.split(",").map(c => c.trim());
+        const themes = b.theme ? b.theme.split(",").map(t => t.trim()) : ["기타"];
+
         categories.forEach(cat => {
           addNode(cat, "category", cat);
           addNode(b.level, "level", b.level);
-          addNode(b.subject || "기타", "subject", b.subject || "기타");
           addNode(b.id, "book", b.title);
           addNode(b.author, "author", b.author);
 
-          data.links.push({ source: cat, target: b.level });
-          data.links.push({ source: b.level, target: b.subject || "기타" });
-          data.links.push({ source: b.subject || "기타", target: b.id });
-          data.links.push({ source: b.id, target: b.author });
+          themes.forEach(theme => {
+            addNode(theme, "subject", theme);
+            data.links.push({ source: cat, target: b.level });
+            data.links.push({ source: b.level, target: theme });
+            data.links.push({ source: theme, target: b.id });
+            data.links.push({ source: b.id, target: b.author });
+          });
         });
       });
 
@@ -146,8 +174,7 @@
       const height = document.getElementById("map").clientHeight;
 
       const svg = d3.select("#map").append("svg")
-        .attr("width", width)
-        .attr("height", height);
+        .attr("width", width).attr("height", height);
 
       const simulation = d3.forceSimulation(data.nodes)
         .force("link", d3.forceLink(data.links).id(d => d.id).distance(120))
@@ -178,15 +205,10 @@
           return "#999";
         })
         .call(d3.drag()
-          .on("start", dragstarted)
-          .on("drag", dragged)
-          .on("end", dragended))
+          .on("start", dragstarted).on("drag", dragged).on("end", dragended))
         .on("click", (e, d) => {
           if (d.group === "book") {
             window.location.href = `book-detail.html?id=${d.id}`;
-          } else if (d.group === "author") {
-            authorFilter = (authorFilter === d.id ? null : d.id); // 토글
-            renderGraph();
           }
         });
 
@@ -196,8 +218,7 @@
         .enter().append("text")
         .text(d => d.label)
         .attr("font-size", 12)
-        .attr("dx", 12)
-        .attr("dy", 4);
+        .attr("dx", 12).attr("dy", 4);
 
       simulation.on("tick", () => {
         link.attr("x1", d => d.source.x)
