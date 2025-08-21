@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BookMap — 도서 관계도</title>
+  <title>📖 BookMap — 도서 관계도</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
@@ -13,48 +13,50 @@
       background: rgba(0, 0, 0, 0.75);
       color: #fff;
       border-radius: 6px;
-      font-size: 13px;
+      font-size: 12px;
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.2s;
     }
-    .legend-circle {
-      display: inline-block;
+    .legend {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      margin-top: 10px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      color: #374151;
+    }
+    .legend-color {
       width: 14px;
       height: 14px;
       border-radius: 50%;
-      margin-right: 6px;
-      vertical-align: middle;
+      display: inline-block;
     }
-    .filter-group {
-      display: flex;
-      flex-wrap: wrap;
+    .filter-scroll {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
       gap: 8px;
-      margin-bottom: 12px;
     }
     .filter-btn {
-      padding: 5px 12px;
-      border: 1px solid #d1d5db;
-      border-radius: 9999px;
-      font-size: 14px;
-      cursor: pointer;
-      background: #fff;
-      transition: all 0.2s;
+      @apply px-3 py-1 rounded-full border border-gray-300 text-sm cursor-pointer;
     }
     .filter-btn.active {
-      background: #2563eb;
-      color: #fff;
-      border-color: #2563eb;
+      @apply bg-blue-600 text-white border-blue-600;
     }
   </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-  <!-- 상단 네비게이션 -->
+  <!-- 헤더 -->
   <header class="bg-blue-600 text-white shadow">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
       <h1 class="text-xl font-bold">📚 BookMap</h1>
-      <nav class="flex gap-6 text-sm">
+      <nav class="flex gap-6">
         <a href="index.html" class="hover:underline">홈</a>
         <a href="form.html" class="hover:underline">도서 등록</a>
         <a href="book.html" class="hover:underline">북맵 리스트</a>
@@ -63,8 +65,7 @@
     </div>
   </header>
 
-  <!-- 메인 -->
-  <main class="max-w-6xl mx-auto px-6 py-10">
+  <main class="max-w-6xl mx-auto px-6 py-8">
     <h2 class="text-2xl font-bold mb-4">📖 도서 관계도</h2>
     <p class="text-gray-600 mb-6">
       북맵 관계도는 도서, 저자, 주제, 카테고리, 단계 등과 같은 관계에 따라 연결되는 것을 보여줍니다. 
@@ -73,185 +74,245 @@
     </p>
 
     <!-- 필터 영역 -->
-    <div id="filters" class="bg-white p-6 rounded-xl shadow space-y-4 mb-6">
-      <div>
-        <h3 class="font-medium mb-2">카테고리</h3>
-        <div class="filter-group" id="filter-category"></div>
-      </div>
-      <div>
-        <h3 class="font-medium mb-2">단계</h3>
-        <div class="filter-group" id="filter-level"></div>
-      </div>
-      <div>
-        <h3 class="font-medium mb-2">도서구분</h3>
-        <div class="filter-group" id="filter-division"></div>
-      </div>
-      <div>
-        <h3 class="font-medium mb-2">저자</h3>
-        <div class="filter-group" id="filter-author"></div>
-      </div>
-      <div>
-        <h3 class="font-medium mb-2">주제</h3>
-        <div class="filter-group" id="filter-subject"></div>
+    <div class="bg-white shadow rounded-lg p-6 mb-4">
+      <div class="filter-scroll">
+        <div>
+          <h3 class="font-semibold mb-2">카테고리</h3>
+          <div id="filter-category" class="flex flex-wrap gap-2"></div>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-2">단계</h3>
+          <div id="filter-stage" class="flex flex-wrap gap-2"></div>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-2">도서구분</h3>
+          <div id="filter-type" class="flex flex-wrap gap-2"></div>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-2">저자</h3>
+          <div id="filter-author" class="flex flex-wrap gap-2"></div>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-2">주제</h3>
+          <div id="filter-subject" class="flex flex-wrap gap-2"></div>
+        </div>
       </div>
     </div>
 
     <!-- 범례 -->
-    <div class="bg-white p-3 rounded-xl shadow mb-6">
-      <div class="flex flex-wrap gap-6 text-sm">
-        <div><span class="legend-circle" style="background:#111"></span>큰 주제</div>
-        <div><span class="legend-circle" style="background:#8b4513"></span>세부 주제</div>
-        <div><span class="legend-circle" style="background:#2563eb"></span>저자</div>
-        <div><span class="legend-circle" style="background:#f59e0b"></span>카테고리</div>
-        <div><span class="legend-circle" style="background:#10b981"></span>도서구분</div>
-        <div><span class="legend-circle" style="background:#6b7280"></span>도서</div>
+    <div class="bg-white shadow rounded-lg p-3 mb-4">
+      <div class="legend">
+        <div class="legend-item"><span class="legend-color" style="background:#111827;"></span>큰 주제</div>
+        <div class="legend-item"><span class="legend-color" style="background:#6b21a8;"></span>세부 주제</div>
+        <div class="legend-item"><span class="legend-color" style="background:#2563eb;"></span>저자</div>
+        <div class="legend-item"><span class="legend-color" style="background:#f59e0b;"></span>카테고리</div>
+        <div class="legend-item"><span class="legend-color" style="background:#16a34a;"></span>도서구분</div>
+        <div class="legend-item"><span class="legend-color" style="background:#9ca3af;"></span>도서</div>
       </div>
     </div>
 
-    <!-- 그래프 영역 -->
-    <div id="graph" class="bg-white rounded-xl shadow p-4" style="height:600px;"></div>
+    <!-- 그래프 -->
+    <div class="bg-white shadow rounded-lg p-4">
+      <svg id="graph" width="100%" height="700"></svg>
+    </div>
   </main>
 
   <div class="tooltip" id="tooltip"></div>
 
   <script>
-    // 🎯 필터 버튼 동적 생성
-    const filterData = {
-      category: ["소설","한국문학","해외문학","철학","사회","개발","프로그래밍","기독교","개신교","신학"],
-      level: ["입문","초급","중급","고급","전문"],
-      division: ["국내서","원서","번역서"],
-      author: ["김영하","매트 헤이그","마이클 샌델","로버트 C. 마틴","김태희"],
-      subject: ["죽음","도서관","공정","사회","프로그래밍","교육","신앙교육"]
-    };
-
-    function renderFilters() {
-      Object.entries(filterData).forEach(([key, values]) => {
-        const container = document.getElementById("filter-" + key);
-        values.forEach(v => {
-          const btn = document.createElement("button");
-          btn.className = "filter-btn";
-          btn.innerText = v;
-          btn.onclick = () => {
-            btn.classList.toggle("active");
-            updateGraph();
-          };
-          container.appendChild(btn);
-        });
-      });
-    }
-    renderFilters();
-
-    // 🎯 d3 그래프 기본 구조
-    const svg = d3.select("#graph").append("svg")
-      .attr("width", "100%")
-      .attr("height", "100%")
-      .call(d3.zoom().on("zoom", (event) => {
-        g.attr("transform", event.transform);
-      }))
-      .append("g");
-
-    const g = svg.append("g");
-
-    const tooltip = d3.select("#tooltip");
+    const API_URL = "https://script.google.com/macros/s/AKfycbwcJ2aaqVvEhxcGdJakKjsmizPBNXzScw2NVWsQ2VNammR0bncJpk68NOYcjgUW6wOf/exec";
 
     const colorMap = {
-      theme: "#111",
-      subject: "#8b4513",
-      author: "#2563eb",
-      category: "#f59e0b",
-      division: "#10b981",
-      book: "#6b7280"
+      "book": "#9ca3af",      // 도서
+      "author": "#2563eb",    // 저자
+      "category": "#f59e0b",  // 카테고리
+      "stage": "#16a34a",     // 단계
+      "type": "#16a34a",      // 도서구분
+      "subject": "#6b21a8",   // 세부 주제
+      "main": "#111827"       // 큰 주제
     };
 
-    // 예시 데이터
-    const nodes = [
-      {id: "1", label: "작별인사", type: "book", description: "김영하 소설", link: "detail.html?id=1"},
-      {id: "2", label: "김영하", type: "author"},
-      {id: "3", label: "소설", type: "category"},
-      {id: "4", label: "죽음", type: "subject"}
-    ];
-    const links = [
-      {source: "1", target: "2"},
-      {source: "1", target: "3"},
-      {source: "1", target: "4"}
-    ];
+    const tooltip = d3.select("#tooltip");
+    const svg = d3.select("#graph");
+    const width = +svg.node().getBoundingClientRect().width;
+    const height = +svg.attr("height");
 
-    const simulation = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(links).id(d => d.id).distance(120))
-      .force("charge", d3.forceManyBody().strength(-300))
-      .force("center", d3.forceCenter(document.getElementById("graph").clientWidth / 2, 300));
+    let allData = [];
+    let filters = { category: [], stage: [], type: [], author: [], subject: [] };
 
-    const link = g.selectAll(".link")
-      .data(links)
-      .enter().append("line")
-      .attr("stroke", "#ccc");
+    // ✅ 데이터 불러오기
+    fetch(API_URL)
+      .then(res => res.json())
+      .then(data => {
+        allData = data;
+        renderFilters(data);
+        renderGraph(data);
+      });
 
-    const node = g.selectAll(".node")
-      .data(nodes)
-      .enter().append("circle")
-      .attr("r", 20)
-      .attr("fill", d => colorMap[d.type])
-      .on("mouseover", function(event, d) {
-        tooltip.style("opacity", 1)
-          .html(d.description || d.label)
-          .style("left", (event.pageX + 10) + "px")
-          .style("top", (event.pageY - 20) + "px");
-      })
-      .on("mouseout", () => tooltip.style("opacity", 0))
-      .on("click", (event, d) => {
-        if (d.type === "book" && d.link) {
-          window.location.href = d.link;
+    // ✅ 필터 버튼 렌더링
+    function renderFilters(data) {
+      const categories = new Set();
+      const stages = new Set();
+      const types = new Set();
+      const authors = new Set();
+      const subjects = new Set();
+
+      data.forEach(d => {
+        d.category?.split(",").forEach(c => categories.add(c.trim()));
+        if(d.stage) stages.add(d.stage);
+        if(d.type) types.add(d.type);
+        if(d.author) authors.add(d.author);
+        d.subject?.split(",").forEach(s => subjects.add(s.trim()));
+      });
+
+      createFilterButtons("filter-category", [...categories], "category");
+      createFilterButtons("filter-stage", [...stages], "stage");
+      createFilterButtons("filter-type", [...types], "type");
+      createFilterButtons("filter-author", [...authors], "author");
+      createFilterButtons("filter-subject", [...subjects], "subject");
+    }
+
+    function createFilterButtons(containerId, items, key) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = "";
+      items.forEach(item => {
+        const btn = document.createElement("button");
+        btn.textContent = item;
+        btn.className = "filter-btn";
+        btn.addEventListener("click", () => {
+          btn.classList.toggle("active");
+          if (filters[key].includes(item)) {
+            filters[key] = filters[key].filter(f => f !== item);
+          } else {
+            filters[key].push(item);
+          }
+          applyFilters();
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    // ✅ 필터 적용
+    function applyFilters() {
+      let filtered = allData.filter(d => {
+        return (!filters.category.length || filters.category.some(f => d.category?.includes(f)))
+          && (!filters.stage.length || filters.stage.includes(d.stage))
+          && (!filters.type.length || filters.type.includes(d.type))
+          && (!filters.author.length || filters.author.includes(d.author))
+          && (!filters.subject.length || filters.subject.some(f => d.subject?.includes(f)));
+      });
+      renderGraph(filtered);
+    }
+
+    // ✅ 노드 그래프 렌더링
+    function renderGraph(data) {
+      svg.selectAll("*").remove();
+
+      let nodes = [], links = [];
+
+      data.forEach(book => {
+        const bookNode = { id: book.title, type: "book", label: book.title, link: book.link, description: book.description };
+        nodes.push(bookNode);
+
+        if(book.author) {
+          nodes.push({ id: book.author, type: "author", label: book.author });
+          links.push({ source: book.title, target: book.author });
         }
-      })
-      .call(d3.drag()
-        .on("start", dragstarted)
-        .on("drag", dragged)
-        .on("end", dragended));
+        if(book.category) {
+          book.category.split(",").forEach(c => {
+            nodes.push({ id: c.trim(), type: "category", label: c.trim() });
+            links.push({ source: book.title, target: c.trim() });
+          });
+        }
+        if(book.stage) {
+          nodes.push({ id: book.stage, type: "stage", label: book.stage });
+          links.push({ source: book.title, target: book.stage });
+        }
+        if(book.type) {
+          nodes.push({ id: book.type, type: "type", label: book.type });
+          links.push({ source: book.title, target: book.type });
+        }
+        if(book.subject) {
+          book.subject.split(",").forEach(s => {
+            nodes.push({ id: s.trim(), type: "subject", label: s.trim() });
+            links.push({ source: book.title, target: s.trim() });
+          });
+        }
+      });
 
-    const label = g.selectAll(".label")
-      .data(nodes)
-      .enter().append("text")
-      .attr("dy", 4)
-      .attr("text-anchor", "middle")
-      .style("font-size", "12px")
-      .style("fill", "#111")
-      .text(d => d.label);
+      nodes = Array.from(new Map(nodes.map(n => [n.id, n])).values());
 
-    simulation.on("tick", () => {
-      link
-        .attr("x1", d => d.source.x)
-        .attr("y1", d => d.source.y)
-        .attr("x2", d => d.target.x)
-        .attr("y2", d => d.target.y);
+      const simulation = d3.forceSimulation(nodes)
+        .force("link", d3.forceLink(links).id(d => d.id).distance(120))
+        .force("charge", d3.forceManyBody().strength(-400))
+        .force("center", d3.forceCenter(width / 2, height / 2));
 
-      node
-        .attr("cx", d => d.x)
-        .attr("cy", d => d.y);
+      const link = svg.append("g")
+        .selectAll("line")
+        .data(links)
+        .enter().append("line")
+        .attr("stroke", "#ccc");
 
-      label
-        .attr("x", d => d.x)
-        .attr("y", d => d.y + 35);
-    });
+      const node = svg.append("g")
+        .selectAll("circle")
+        .data(nodes)
+        .enter().append("circle")
+        .attr("r", 12)
+        .attr("fill", d => colorMap[d.type] || "#888")
+        .call(d3.drag()
+          .on("start", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended))
+        .on("mouseover", (event, d) => {
+          tooltip.style("opacity", 1).html(`<strong>${d.label}</strong><br>${d.description || ""}`);
+        })
+        .on("mousemove", event => {
+          tooltip.style("left", (event.pageX + 10) + "px")
+                 .style("top", (event.pageY - 20) + "px");
+        })
+        .on("mouseout", () => tooltip.style("opacity", 0))
+        .on("click", (event, d) => {
+          if(d.type === "book" && d.link) {
+            window.location.href = d.link;
+          }
+        });
 
-    function dragstarted(event, d) {
-      if (!event.active) simulation.alphaTarget(0.3).restart();
-      d.fx = d.x;
-      d.fy = d.y;
-    }
+      const label = svg.append("g")
+        .selectAll("text")
+        .data(nodes)
+        .enter().append("text")
+        .text(d => d.label)
+        .attr("font-size", "10px")
+        .attr("dx", 15)
+        .attr("dy", 4);
 
-    function dragged(event, d) {
-      d.fx = event.x;
-      d.fy = event.y;
-    }
+      simulation.on("tick", () => {
+        link.attr("x1", d => d.source.x)
+            .attr("y1", d => d.source.y)
+            .attr("x2", d => d.target.x)
+            .attr("y2", d => d.target.y);
 
-    function dragended(event, d) {
-      if (!event.active) simulation.alphaTarget(0);
-      d.fx = null;
-      d.fy = null;
-    }
+        node.attr("cx", d => d.x)
+            .attr("cy", d => d.y);
 
-    function updateGraph() {
-      console.log("필터 선택됨 → 그래프 업데이트 필요");
+        label.attr("x", d => d.x)
+             .attr("y", d => d.y);
+      });
+
+      function dragstarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      }
+      function dragged(event, d) {
+        d.fx = event.x;
+        d.fy = event.y;
+      }
+      function dragended(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+      }
     }
   </script>
 </body>
