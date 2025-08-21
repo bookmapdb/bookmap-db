@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>📖 BookMap — 도서 상세</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-  <!-- 상단 네비 -->
+  <!-- 상단 네비게이션 -->
   <header class="bg-blue-600 text-white shadow">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
       <h1 class="text-xl font-bold">📚 BookMap</h1>
-      <nav class="flex gap-6">
+      <nav class="flex gap-6 text-sm">
         <a href="index.html" class="hover:underline">홈</a>
         <a href="form.html" class="hover:underline">도서 등록</a>
         <a href="book.html" class="hover:underline">북맵 리스트</a>
@@ -21,61 +21,94 @@
     </div>
   </header>
 
-  <main class="max-w-4xl mx-auto px-6 py-8">
-    <div id="bookDetail" class="bg-white shadow rounded-lg p-6">
-      <p class="text-gray-500">도서 정보를 불러오는 중...</p>
+  <!-- 메인 -->
+  <main class="max-w-4xl mx-auto px-6 py-10">
+    <div id="loading" class="text-center text-gray-500">도서 정보를 불러오는 중입니다...</div>
+    <div id="bookDetail" class="hidden bg-white p-6 rounded-xl shadow-lg">
+      <div class="flex flex-col md:flex-row gap-6">
+        
+        <!-- 이미지 -->
+        <div class="w-full md:w-1/3 flex-shrink-0">
+          <img id="bookImage" class="w-full rounded-lg shadow" alt="Book Cover">
+        </div>
+        
+        <!-- 도서 정보 -->
+        <div class="flex-1">
+          <h2 id="bookTitle" class="text-2xl font-bold mb-2"></h2>
+          <p id="bookAuthor" class="text-lg text-gray-600 mb-1"></p>
+          <p id="bookPublisher" class="text-sm text-gray-500 mb-4"></p>
+          
+          <div class="flex flex-wrap gap-2 mb-4 text-sm">
+            <span id="bookCategory" class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full"></span>
+            <span id="bookLevel" class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full"></span>
+            <span id="bookDivision" class="px-3 py-1 bg-gray-100 text-gray-800 rounded-full"></span>
+          </div>
+
+          <p id="bookDescription" class="mb-4 leading-relaxed text-gray-700"></p>
+          <p id="bookReason" class="italic text-gray-600 mb-6"></p>
+
+          <!-- 구매 링크 -->
+          <div class="flex gap-3 flex-wrap" id="buyLinks"></div>
+        </div>
+      </div>
     </div>
   </main>
 
   <script>
-    // URL 파라미터에서 id 가져오기
-    const params = new URLSearchParams(window.location.search);
-    const bookId = params.get("id");
-
-    // ✅ books.json 불러오기
-    fetch("./books.json")
-      .then(res => res.json())
-      .then(data => {
-        const book = data.find(b => b.id == bookId);
-        if (book) {
-          renderBookDetail(book);
-        } else {
-          document.getElementById("bookDetail").innerHTML =
-            "<p class='text-red-500'>해당 도서를 찾을 수 없습니다.</p>";
-        }
-      })
-      .catch(err => {
-        console.error("데이터 불러오기 실패:", err);
-        document.getElementById("bookDetail").innerHTML =
-          "<p class='text-red-500'>데이터를 불러오는 중 오류가 발생했습니다.</p>";
-      });
-
-    function renderBookDetail(book) {
-      const container = document.getElementById("bookDetail");
-      container.innerHTML = `
-        <div class="flex flex-col md:flex-row gap-6">
-          <img src="${book.image}" alt="${book.title}" class="w-48 h-64 object-cover rounded">
-          <div>
-            <h2 class="text-2xl font-bold mb-2">${book.title}</h2>
-            <p class="text-gray-700 mb-1"><b>저자:</b> ${book.author}</p>
-            <p class="text-gray-700 mb-1"><b>카테고리:</b> ${book.category?.join(", ")}</p>
-            <p class="text-gray-700 mb-1"><b>단계:</b> ${book.level}</p>
-            <p class="text-gray-700 mb-1"><b>도서구분:</b> ${book.type}</p>
-            
-            <div class="mt-4 space-x-2">
-              ${book.link?.aladin ? `<a href="${book.link.aladin}" target="_blank" class="bg-orange-500 text-white px-3 py-1 rounded">알라딘</a>` : ""}
-              ${book.link?.kyobo ? `<a href="${book.link.kyobo}" target="_blank" class="bg-green-600 text-white px-3 py-1 rounded">교보문고</a>` : ""}
-              ${book.link?.yes24 ? `<a href="${book.link.yes24}" target="_blank" class="bg-blue-600 text-white px-3 py-1 rounded">YES24</a>` : ""}
-            </div>
-          </div>
-        </div>
-
-        <div class="mt-6">
-          <h3 class="text-xl font-semibold mb-2">📌 도서 설명</h3>
-          <p class="text-gray-700 whitespace-pre-line">${book.description || "설명이 없습니다."}</p>
-        </div>
-      `;
+    // ✅ URL 파라미터에서 ID 가져오기
+    function getQueryParam(param) {
+      return new URLSearchParams(window.location.search).get(param);
     }
+
+    async function loadBookDetail() {
+      const id = getQueryParam("id");
+      if (!id) {
+        document.getElementById("loading").innerText = "잘못된 접근입니다.";
+        return;
+      }
+
+      try {
+        const res = await fetch("books.json");
+        const books = await res.json();
+        const book = books.find(b => String(b.id) === id);
+
+        if (!book) {
+          document.getElementById("loading").innerText = "도서를 찾을 수 없습니다.";
+          return;
+        }
+
+        document.getElementById("loading").classList.add("hidden");
+        const detail = document.getElementById("bookDetail");
+        detail.classList.remove("hidden");
+
+        document.getElementById("bookTitle").innerText = book.title;
+        document.getElementById("bookAuthor").innerText = `저자: ${book.author}`;
+        document.getElementById("bookPublisher").innerText = `출판사: ${book.publisher || "정보 없음"}`;
+        document.getElementById("bookCategory").innerText = book.category || "";
+        document.getElementById("bookLevel").innerText = book.level || "";
+        document.getElementById("bookDivision").innerText = book.division || "";
+        document.getElementById("bookDescription").innerText = book.description || "설명 없음";
+        document.getElementById("bookReason").innerText = `📌 추천 이유: ${book.reason || "없음"}`;
+        document.getElementById("bookImage").src = book.image || "";
+
+        // 구매 링크 생성
+        const buyLinks = document.getElementById("buyLinks");
+        buyLinks.innerHTML = "";
+        if (book.buy_link) {
+          const btn = document.createElement("a");
+          btn.href = book.buy_link;
+          btn.target = "_blank";
+          btn.className = "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700";
+          btn.innerText = "구매하기";
+          buyLinks.appendChild(btn);
+        }
+      } catch (err) {
+        console.error("도서 불러오기 오류:", err);
+        document.getElementById("loading").innerText = "데이터를 불러오는 중 오류가 발생했습니다.";
+      }
+    }
+
+    loadBookDetail();
   </script>
 </body>
 </html>
