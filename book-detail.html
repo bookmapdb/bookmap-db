@@ -57,6 +57,7 @@
               <h2 class="text-2xl font-bold mb-2">${book.title}</h2>
               ${book.original_title ? `<p class="text-sm text-gray-500 mb-2">원서제목: ${book.original_title}</p>` : ""}
               <p class="text-gray-700 mb-1">저자: ${book.author}</p>
+              ${book.theme ? `<p class="text-gray-700 mb-1">주제: ${book.theme}</p>` : ""}
               <p class="text-gray-700 mb-1">카테고리: ${book.category}</p>
               <p class="text-gray-700 mb-1">단계: ${book.level}</p>
               <p class="text-gray-700 mb-1">도서구분: ${book.division || "미정"}</p>
