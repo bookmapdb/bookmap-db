@@ -1,147 +1,38 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BookMap — 북맵 리스트</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    .filter-btn.active {
-      background-color: #2563eb;
-      color: white;
-    }
-  </style>
-</head>
-<body class="bg-gray-50 text-gray-800">
-  <!-- 상단 네비게이션 -->
-  <header class="bg-blue-600 text-white shadow">
-    <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-      <h1 class="text-xl font-bold">📚 BookMap</h1>
-      <nav class="flex gap-6">
-        <a href="index.html" class="hover:underline">홈</a>
-        <a href="form.html" class="hover:underline">도서 등록</a>
-        <a href="book.html" class="hover:underline">북맵 리스트</a>
-        <a href="map.html" class="hover:underline">북맵 보기</a>
-      </nav>
-    </div>
-  </header>
+<div id="book-list" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"></div>
 
-  <main class="max-w-6xl mx-auto px-6 py-8">
-    <h2 class="text-2xl font-semibold mb-6">🔎 필터</h2>
+<script>
+async function loadBooks() {
+  const res = await fetch("https://script.google.com/macros/s/AKfycbywJOW4dOlmDrzood3ka_jizri4K7sFqTJDPG8ibnmDrxXZgFWrFnjMEv38C5pCtjp_/exec");
+  const books = await res.json();
+  
+  const container = document.getElementById("book-list");
+  container.innerHTML = "";
 
-    <!-- 필터 영역 -->
-    <div id="filters" class="space-y-4 mb-8">
-      <div>
-        <h3 class="font-medium mb-2">카테고리</h3>
-        <div id="category-filters" class="flex flex-wrap gap-2"></div>
+  books.forEach(book => {
+    const card = document.createElement("div");
+    card.className = "bg-white rounded-2xl shadow p-4 hover:shadow-lg transition cursor-pointer";
+
+    card.innerHTML = `
+      <img src="${book.image}" alt="${book.title}" class="w-full h-48 object-cover rounded-xl mb-4">
+      <h3 class="text-lg font-semibold mb-1">${book.title}</h3>
+      <p class="text-sm text-gray-600 mb-1">저자: ${book.author}</p>
+      <p class="text-sm text-gray-600 mb-1">${book.publisher}</p>
+      <p class="text-sm text-gray-700 mb-3 line-clamp-3">${book.description || ""}</p> <!-- ✅ 설명 추가 -->
+      <div class="flex flex-wrap gap-2 text-xs">
+        <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded">${book.category}</span>
+        <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded">${book.level}</span>
+        <span class="px-2 py-1 bg-green-100 text-green-700 rounded">${book.division}</span>
       </div>
-      <div>
-        <h3 class="font-medium mb-2">단계</h3>
-        <div id="level-filters" class="flex flex-wrap gap-2"></div>
-      </div>
-      <div>
-        <h3 class="font-medium mb-2">도서구분</h3>
-        <div id="division-filters" class="flex flex-wrap gap-2"></div>
-      </div>
-      <div>
-        <h3 class="font-medium mb-2">저자</h3>
-        <div id="author-filters" class="flex flex-wrap gap-2"></div>
-      </div>
-      <div>
-        <h3 class="font-medium mb-2">주제 (Theme)</h3>
-        <div id="theme-filters" class="flex flex-wrap gap-2"></div>
-      </div>
-      <div>
-        <h3 class="font-medium mb-2">세부 주제 (Subject)</h3>
-        <div id="subject-filters" class="flex flex-wrap gap-2"></div>
-      </div>
-    </div>
+    `;
 
-    <!-- 도서 리스트 -->
-    <div id="book-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-  </main>
+    // 카드 클릭 → 상세 페이지 이동
+    card.onclick = () => {
+      window.location.href = `book-detail.html?id=${book.id}`;
+    };
 
-  <script>
-    const API_URL = "https://script.google.com/macros/s/👉여기에_사용자_API_URL/exec";
+    container.appendChild(card);
+  });
+}
 
-    async function fetchBooks() {
-      const res = await fetch(API_URL);
-      return res.json();
-    }
-
-    function createFilterButtons(values, containerId) {
-      const container = document.getElementById(containerId);
-      [...new Set(values.flatMap(v => (v ? v.split(/[, ]+/) : [])))]
-        .filter(v => v.trim() !== "")
-        .forEach(v => {
-          const btn = document.createElement("button");
-          btn.textContent = v;
-          btn.className = "filter-btn px-3 py-1 border rounded-full text-sm";
-          btn.addEventListener("click", () => {
-            btn.classList.toggle("active");
-            applyFilters();
-          });
-          container.appendChild(btn);
-        });
-    }
-
-    function applyFilters() {
-      const activeFilters = {};
-      ["category", "level", "division", "author", "theme", "subject"].forEach(key => {
-        const selected = [...document.querySelectorAll(`#${key}-filters .active`)].map(b => b.textContent);
-        if (selected.length > 0) activeFilters[key] = selected;
-      });
-
-      document.querySelectorAll(".book-card").forEach(card => {
-        let visible = true;
-        for (const key in activeFilters) {
-          const value = card.dataset[key] || "";
-          if (!activeFilters[key].some(f => value.includes(f))) {
-            visible = false;
-            break;
-          }
-        }
-        card.style.display = visible ? "block" : "none";
-      });
-    }
-
-    function renderBooks(books) {
-      const list = document.getElementById("book-list");
-      list.innerHTML = "";
-      books.forEach(book => {
-        const card = document.createElement("div");
-        card.className = "book-card bg-white rounded-lg shadow p-4";
-        card.dataset.category = book.category || "";
-        card.dataset.level = book.level || "";
-        card.dataset.division = book.division || "";
-        card.dataset.author = book.author || "";
-        card.dataset.theme = book.theme || "";
-        card.dataset.subject = book.subject || "";
-
-        card.innerHTML = `
-          <img src="${book.image}" alt="${book.title}" class="w-full h-48 object-cover rounded">
-          <h3 class="mt-3 font-semibold text-lg">${book.title}</h3>
-          <p class="text-sm text-gray-600">저자: ${book.author}</p>
-          <p class="text-sm text-gray-500">${book.publisher || ""}</p>
-          <div class="mt-2 flex flex-wrap gap-1">
-            <span class="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded">${book.category || ""}</span>
-            <span class="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded">${book.level || ""}</span>
-            <span class="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">${book.division || ""}</span>
-          </div>
-        `;
-        list.appendChild(card);
-      });
-    }
-
-    fetchBooks().then(books => {
-      renderBooks(books);
-      createFilterButtons(books.map(b => b.category), "category-filters");
-      createFilterButtons(books.map(b => b.level), "level-filters");
-      createFilterButtons(books.map(b => b.division), "division-filters");
-      createFilterButtons(books.map(b => b.author), "author-filters");
-      createFilterButtons(books.map(b => b.theme), "theme-filters");
-      createFilterButtons(books.map(b => b.subject), "subject-filters");
-    });
-  </script>
-</body>
-</html>
+loadBooks();
+</script>
