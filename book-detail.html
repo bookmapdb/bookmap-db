@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>📖 BookMap — 도서 상세</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-  <!-- 헤더 -->
+  <!-- 상단 네비 -->
   <header class="bg-blue-600 text-white shadow">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
       <h1 class="text-xl font-bold">📚 BookMap</h1>
@@ -21,73 +21,58 @@
     </div>
   </header>
 
-  <!-- 메인 -->
-  <main class="max-w-4xl mx-auto px-6 py-10">
-    <div id="loading" class="text-center text-gray-500">📖 도서 정보를 불러오는 중입니다...</div>
-    <div id="book-detail" class="hidden bg-white shadow rounded-lg overflow-hidden"></div>
+  <main class="max-w-4xl mx-auto px-6 py-8">
+    <div id="bookDetail" class="bg-white shadow rounded-lg p-6">
+      <p class="text-gray-500">도서 정보를 불러오는 중...</p>
+    </div>
   </main>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwcJ2aaqVvEhxcGdJakKjsmizPBNXzScw2NVWsQ2VNammR0bncJpk68NOYcjgUW6wOf/exec";
-
-    // ✅ URL 파라미터 가져오기
+    // URL 파라미터에서 id 가져오기
     const params = new URLSearchParams(window.location.search);
-    const title = params.get("title");
+    const bookId = params.get("id");
 
-    if (!title) {
-      document.getElementById("loading").textContent = "❌ 도서 제목이 전달되지 않았습니다.";
-    } else {
-      fetch(API_URL)
-        .then(res => res.json())
-        .then(data => {
-          const book = data.find(b => b.title === title);
+    // ✅ books.json 불러오기
+    fetch("./books.json")
+      .then(res => res.json())
+      .then(data => {
+        const book = data.find(b => b.id == bookId);
+        if (book) {
+          renderBookDetail(book);
+        } else {
+          document.getElementById("bookDetail").innerHTML =
+            "<p class='text-red-500'>해당 도서를 찾을 수 없습니다.</p>";
+        }
+      })
+      .catch(err => {
+        console.error("데이터 불러오기 실패:", err);
+        document.getElementById("bookDetail").innerHTML =
+          "<p class='text-red-500'>데이터를 불러오는 중 오류가 발생했습니다.</p>";
+      });
 
-          if (!book) {
-            document.getElementById("loading").textContent = "❌ 해당 도서를 찾을 수 없습니다.";
-            return;
-          }
-
-          renderBook(book);
-        })
-        .catch(err => {
-          console.error(err);
-          document.getElementById("loading").textContent = "⚠️ 데이터를 불러오는 중 오류가 발생했습니다.";
-        });
-    }
-
-    // ✅ 도서 상세 정보 렌더링
-    function renderBook(book) {
-      document.getElementById("loading").classList.add("hidden");
-      const container = document.getElementById("book-detail");
-      container.classList.remove("hidden");
-
+    function renderBookDetail(book) {
+      const container = document.getElementById("bookDetail");
       container.innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <!-- 이미지 -->
-          <div class="col-span-1">
-            <img src="${book.image}" alt="${book.title}" class="w-full rounded-lg shadow">
-          </div>
-
-          <!-- 정보 -->
-          <div class="col-span-2 p-4">
-            <h2 class="text-2xl font-bold mb-4">${book.title}</h2>
-            <p class="mb-2"><strong>저자:</strong> ${book.author || "-"}</p>
-            <p class="mb-2"><strong>출판사:</strong> ${book.publisher || "-"}</p>
-            <p class="mb-2"><strong>큰 주제:</strong> ${book.theme || "-"}</p>
-            <p class="mb-2"><strong>세부 주제:</strong> ${book.subject || "-"}</p>
-            <p class="mb-2"><strong>카테고리:</strong> ${book.category || "-"}</p>
-            <p class="mb-2"><strong>도서구분:</strong> ${book.division || "-"}</p>
-            <p class="mb-2"><strong>단계:</strong> ${book.level || "-"}</p>
-            ${book.original_title ? `<p class="mb-2"><strong>원서 제목:</strong> ${book.original_title}</p>` : ""}
-            ${book.original_buy_link ? `<p class="mb-2"><strong>원서 구매링크:</strong> <a href="${book.original_buy_link}" target="_blank" class="text-blue-600 hover:underline">바로가기</a></p>` : ""}
-            <p class="mt-4 text-gray-700"><strong>추천 이유:</strong> ${book.reason || "-"}</p>
-
-            <!-- 버튼 -->
-            <div class="mt-6 flex gap-3">
-              <a href="book.html" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">← 목록으로</a>
-              ${book.buy_link ? `<a href="${book.buy_link}" target="_blank" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">구매하기</a>` : ""}
+        <div class="flex flex-col md:flex-row gap-6">
+          <img src="${book.image}" alt="${book.title}" class="w-48 h-64 object-cover rounded">
+          <div>
+            <h2 class="text-2xl font-bold mb-2">${book.title}</h2>
+            <p class="text-gray-700 mb-1"><b>저자:</b> ${book.author}</p>
+            <p class="text-gray-700 mb-1"><b>카테고리:</b> ${book.category?.join(", ")}</p>
+            <p class="text-gray-700 mb-1"><b>단계:</b> ${book.level}</p>
+            <p class="text-gray-700 mb-1"><b>도서구분:</b> ${book.type}</p>
+            
+            <div class="mt-4 space-x-2">
+              ${book.link?.aladin ? `<a href="${book.link.aladin}" target="_blank" class="bg-orange-500 text-white px-3 py-1 rounded">알라딘</a>` : ""}
+              ${book.link?.kyobo ? `<a href="${book.link.kyobo}" target="_blank" class="bg-green-600 text-white px-3 py-1 rounded">교보문고</a>` : ""}
+              ${book.link?.yes24 ? `<a href="${book.link.yes24}" target="_blank" class="bg-blue-600 text-white px-3 py-1 rounded">YES24</a>` : ""}
             </div>
           </div>
+        </div>
+
+        <div class="mt-6">
+          <h3 class="text-xl font-semibold mb-2">📌 도서 설명</h3>
+          <p class="text-gray-700 whitespace-pre-line">${book.description || "설명이 없습니다."}</p>
         </div>
       `;
     }
