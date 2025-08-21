@@ -3,15 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BookMap — 북맵 리스트</title>
+  <title>BookMap — 도서 관계도</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
-    /* 텍스트 줄임 (설명 3줄까지만 보이도록) */
-    .line-clamp-3 {
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+    .tooltip {
+      position: absolute;
+      background: white;
+      border: 1px solid #ccc;
+      padding: 8px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      max-width: 260px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+      z-index: 50;
+      line-height: 1.4;
+    }
+    .tooltip img {
+      width: 60px;
+      height: 85px;
+      object-fit: cover;
+      float: left;
+      margin-right: 8px;
+      border-radius: 4px;
     }
   </style>
 </head>
@@ -23,16 +40,22 @@
       <h1 class="text-xl font-bold cursor-pointer" onclick="location.href='index.html'">📚 BookMap</h1>
       <nav class="flex gap-6">
         <a href="form.html" class="hover:underline">도서 등록</a>
-        <a href="book.html" class="hover:underline font-semibold">북맵 리스트</a>
-        <a href="map.html" class="hover:underline">북맵 보기</a>
+        <a href="book.html" class="hover:underline">북맵 리스트</a>
+        <a href="map.html" class="hover:underline font-semibold">북맵 보기</a>
       </nav>
     </div>
   </header>
 
-  <!-- 필터 영역 -->
+  <!-- 메인 -->
   <main class="max-w-6xl mx-auto p-6">
-    <h2 class="text-xl font-semibold mb-4">🔍 필터</h2>
-    <div id="filters" class="space-y-4 mb-8">
+    <h2 class="text-xl font-semibold mb-2">📖 도서 관계도</h2>
+    <p class="text-sm text-gray-600 mb-6">
+      북맵 관계도는 도서, 저자, 주제, 카테고리, 단계 등과 같은 관계에 따라 연결되는 것을 보여줍니다.<br>
+      도서명이나 저자 이름에 <strong>마우스를 올리면 간단한 설명</strong>을 볼 수 있으며, 클릭하면 해당 도서 상세페이지로 이동합니다.
+    </p>
+
+    <!-- 필터 영역 -->
+    <div id="filters" class="space-y-4 mb-6">
       <div>
         <h3 class="text-sm font-semibold mb-2">카테고리</h3>
         <div id="filter-category" class="flex flex-wrap gap-2"></div>
@@ -55,24 +78,36 @@
       </div>
     </div>
 
-    <!-- 도서 리스트 -->
-    <div id="book-list" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"></div>
+    <!-- 범례 -->
+    <div class="mb-4 flex gap-4 text-sm">
+      <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-blue-400"></span> 도서</span>
+      <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-green-400"></span> 저자</span>
+      <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-yellow-400"></span> 카테고리</span>
+      <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-purple-400"></span> 주제</span>
+      <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-400"></span> 도서구분</span>
+    </div>
+
+    <!-- 그래프 -->
+    <div class="bg-white rounded-xl shadow p-4">
+      <svg id="graph" width="100%" height="600"></svg>
+    </div>
   </main>
+
+  <!-- Tooltip -->
+  <div id="tooltip" class="tooltip"></div>
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbywJOW4dOlmDrzood3ka_jizri4K7sFqTJDPG8ibnmDrxXZgFWrFnjMEv38C5pCtjp_/exec";
     let books = [];
     let activeFilters = { category: [], level: [], division: [], author: [], subject: [] };
 
-    // 데이터 로드
     async function loadBooks() {
       const res = await fetch(API_URL);
       books = await res.json();
       renderFilters();
-      renderBooks();
+      renderGraph();
     }
 
-    // 필터 버튼 생성
     function renderFilters() {
       const categories = new Set(), levels = new Set(), divisions = new Set(), authors = new Set(), subjects = new Set();
 
@@ -95,7 +130,6 @@
       makeFilterButtons("filter-subject", [...subjects], "subject");
     }
 
-    // 필터 버튼 UI
     function makeFilterButtons(containerId, items, type) {
       const container = document.getElementById(containerId);
       container.innerHTML = "";
@@ -108,7 +142,6 @@
       });
     }
 
-    // 필터 토글
     function toggleFilter(type, value, btn) {
       if (activeFilters[type].includes(value)) {
         activeFilters[type] = activeFilters[type].filter(v => v !== value);
@@ -119,48 +152,131 @@
         btn.classList.add("bg-blue-500", "text-white");
         btn.classList.remove("bg-gray-100");
       }
-      renderBooks();
+      renderGraph();
     }
 
-    // 도서 카드 렌더링
-    function renderBooks() {
-      const container = document.getElementById("book-list");
-      container.innerHTML = "";
+    function renderGraph() {
+      const svg = d3.select("#graph");
+      svg.selectAll("*").remove();
 
-      const filtered = books.filter(book => {
-        return (
+      const nodes = [], links = [];
+      const tooltip = document.getElementById("tooltip");
+
+      // 노드 / 링크 구성
+      books.forEach(book => {
+        if (!(
           (activeFilters.category.length === 0 || activeFilters.category.some(v => book.category?.includes(v))) &&
           (activeFilters.level.length === 0 || activeFilters.level.includes(book.level)) &&
           (activeFilters.division.length === 0 || activeFilters.division.includes(book.division)) &&
           (activeFilters.author.length === 0 || activeFilters.author.includes(book.author)) &&
           (activeFilters.subject.length === 0 || activeFilters.subject.some(v => book.subject?.includes(v)))
-        );
+        )) return;
+
+        nodes.push({ id: book.id, name: book.title, type: "도서", description: book.description, image: book.image });
+
+        if (book.author) {
+          nodes.push({ id: `author-${book.author}`, name: book.author, type: "저자" });
+          links.push({ source: book.id, target: `author-${book.author}` });
+        }
+
+        book.category?.split(",").forEach(c => {
+          const cid = `cat-${c.trim()}`;
+          nodes.push({ id: cid, name: c.trim(), type: "카테고리" });
+          links.push({ source: book.id, target: cid });
+        });
+
+        if (book.division) {
+          nodes.push({ id: `div-${book.division}`, name: book.division, type: "도서구분" });
+          links.push({ source: book.id, target: `div-${book.division}` });
+        }
+
+        if (book.subject) {
+          const subs = Array.isArray(book.subject) ? book.subject : book.subject.split(",");
+          subs.forEach(s => {
+            const sid = `sub-${s.trim()}`;
+            nodes.push({ id: sid, name: s.trim(), type: "주제" });
+            links.push({ source: book.id, target: sid });
+          });
+        }
       });
 
-      filtered.forEach(book => {
-        const card = document.createElement("div");
-        card.className = "bg-white rounded-2xl shadow p-4 hover:shadow-lg transition cursor-pointer";
+      const uniqueNodes = Array.from(new Map(nodes.map(n => [n.id, n])).values());
 
-        card.innerHTML = `
-          <img src="${book.image}" alt="${book.title}" class="w-full h-48 object-cover rounded-xl mb-4">
-          <h3 class="text-lg font-semibold mb-1">${book.title}</h3>
-          <p class="text-sm text-gray-600 mb-1">저자: ${book.author}</p>
-          <p class="text-sm text-gray-600 mb-1">${book.publisher}</p>
-          <p class="text-sm text-gray-700 mb-3 line-clamp-3">${book.description || ""}</p>
-          <div class="flex flex-wrap gap-2 text-xs">
-            ${book.category ? `<span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded">${book.category}</span>` : ""}
-            ${book.level ? `<span class="px-2 py-1 bg-blue-100 text-blue-700 rounded">${book.level}</span>` : ""}
-            ${book.division ? `<span class="px-2 py-1 bg-green-100 text-green-700 rounded">${book.division}</span>` : ""}
-          </div>
-        `;
+      const colorMap = { "도서": "blue", "저자": "green", "카테고리": "gold", "주제": "purple", "도서구분": "red" };
 
-        // 상세 페이지 이동
-        card.onclick = () => {
-          window.location.href = `book-detail.html?id=${book.id}`;
-        };
+      const simulation = d3.forceSimulation(uniqueNodes)
+        .force("link", d3.forceLink(links).id(d => d.id).distance(120))
+        .force("charge", d3.forceManyBody().strength(-300))
+        .force("center", d3.forceCenter(svg.node().clientWidth / 2, 300));
 
-        container.appendChild(card);
+      const link = svg.append("g").selectAll("line")
+        .data(links)
+        .enter().append("line")
+        .attr("stroke", "#aaa");
+
+      const node = svg.append("g").selectAll("circle")
+        .data(uniqueNodes)
+        .enter().append("circle")
+        .attr("r", 12)
+        .attr("fill", d => colorMap[d.type] || "gray")
+        .call(drag(simulation));
+
+      // Tooltip 이벤트
+      node.on("mouseover", (event, d) => {
+        if (d.type === "도서") {
+          tooltip.innerHTML = `
+            <img src="${d.image || ""}" alt="cover">
+            <div><strong>${d.name}</strong><br>${d.description || "설명 없음"}</div>
+          `;
+        } else {
+          tooltip.innerHTML = `<strong>${d.type}</strong> - ${d.name}`;
+        }
+        tooltip.style.opacity = 1;
+      })
+      .on("mousemove", (event) => {
+        tooltip.style.left = (event.pageX + 12) + "px";
+        tooltip.style.top = (event.pageY - 28) + "px";
+      })
+      .on("mouseout", () => {
+        tooltip.style.opacity = 0;
+      })
+      .on("click", (event, d) => {
+        if (d.type === "도서") {
+          window.location.href = `book-detail.html?id=${d.id}`;
+        }
       });
+
+      const label = svg.append("g").selectAll("text")
+        .data(uniqueNodes)
+        .enter().append("text")
+        .text(d => d.name)
+        .attr("font-size", "10px")
+        .attr("dy", -18);
+
+      simulation.on("tick", () => {
+        link.attr("x1", d => d.source.x)
+            .attr("y1", d => d.source.y)
+            .attr("x2", d => d.target.x)
+            .attr("y2", d => d.target.y);
+
+        node.attr("cx", d => d.x).attr("cy", d => d.y);
+        label.attr("x", d => d.x).attr("y", d => d.y);
+      });
+    }
+
+    function drag(simulation) {
+      return d3.drag()
+        .on("start", (event, d) => {
+          if (!event.active) simulation.alphaTarget(0.3).restart();
+          d.fx = d.x; d.fy = d.y;
+        })
+        .on("drag", (event, d) => {
+          d.fx = event.x; d.fy = event.y;
+        })
+        .on("end", (event, d) => {
+          if (!event.active) simulation.alphaTarget(0);
+          d.fx = null; d.fy = null;
+        });
     }
 
     loadBooks();
