@@ -38,33 +38,17 @@
   <main class="max-w-6xl mx-auto px-6 py-8">
     <h2 class="text-2xl font-semibold mb-6">📖 도서 관계도</h2>
 
+    <!-- 필터 -->
     <div id="filters" class="space-y-4 mb-8">
-      <div>
-        <h3 class="font-medium mb-2">카테고리</h3>
-        <div id="category-filters" class="flex flex-wrap gap-2"></div>
-      </div>
-      <div>
-        <h3 class="font-medium mb-2">단계</h3>
-        <div id="level-filters" class="flex flex-wrap gap-2"></div>
-      </div>
-      <div>
-        <h3 class="font-medium mb-2">도서구분</h3>
-        <div id="division-filters" class="flex flex-wrap gap-2"></div>
-      </div>
-      <div>
-        <h3 class="font-medium mb-2">저자</h3>
-        <div id="author-filters" class="flex flex-wrap gap-2"></div>
-      </div>
-      <div>
-        <h3 class="font-medium mb-2">주제 (Theme)</h3>
-        <div id="theme-filters" class="flex flex-wrap gap-2"></div>
-      </div>
-      <div>
-        <h3 class="font-medium mb-2">세부 주제 (Subject)</h3>
-        <div id="subject-filters" class="flex flex-wrap gap-2"></div>
-      </div>
+      <div><h3 class="font-medium mb-2">카테고리</h3><div id="category-filters" class="flex flex-wrap gap-2"></div></div>
+      <div><h3 class="font-medium mb-2">단계</h3><div id="level-filters" class="flex flex-wrap gap-2"></div></div>
+      <div><h3 class="font-medium mb-2">도서구분</h3><div id="division-filters" class="flex flex-wrap gap-2"></div></div>
+      <div><h3 class="font-medium mb-2">저자</h3><div id="author-filters" class="flex flex-wrap gap-2"></div></div>
+      <div><h3 class="font-medium mb-2">주제 (Theme)</h3><div id="theme-filters" class="flex flex-wrap gap-2"></div></div>
+      <div><h3 class="font-medium mb-2">세부 주제 (Subject)</h3><div id="subject-filters" class="flex flex-wrap gap-2"></div></div>
     </div>
 
+    <!-- 범례 -->
     <div class="mb-4 flex gap-4 text-sm">
       <span class="flex items-center gap-1"><span class="w-3 h-3 bg-blue-500 rounded-full"></span> 도서</span>
       <span class="flex items-center gap-1"><span class="w-3 h-3 bg-green-500 rounded-full"></span> 저자</span>
@@ -78,14 +62,16 @@
   </main>
 
   <script>
+    const API_URL = "https://script.google.com/macros/s/👉여기에_사용자_API_URL/exec";
+
     async function fetchBooks() {
-      const res = await fetch("books.json");
+      const res = await fetch(API_URL);
       return res.json();
     }
 
     function createFilterButtons(values, containerId) {
       const container = document.getElementById(containerId);
-      [...new Set(values.flatMap(v => v.split(/[, ]+/)))]
+      [...new Set(values.flatMap(v => (v ? v.split(/[, ]+/) : [])))]
         .filter(v => v.trim() !== "")
         .forEach(v => {
           const btn = document.createElement("button");
@@ -106,26 +92,36 @@
       books.forEach(book => {
         nodes.push({ id: book.title, type: "book", description: book.reason });
 
-        nodes.push({ id: book.author, type: "author" });
-        links.push({ source: book.title, target: book.author });
+        if (book.author) {
+          nodes.push({ id: book.author, type: "author" });
+          links.push({ source: book.title, target: book.author });
+        }
 
-        book.category.split(/[, ]+/).forEach(cat => {
-          nodes.push({ id: cat, type: "category" });
-          links.push({ source: book.title, target: cat });
-        });
+        if (book.category) {
+          book.category.split(/[, ]+/).forEach(cat => {
+            nodes.push({ id: cat, type: "category" });
+            links.push({ source: book.title, target: cat });
+          });
+        }
 
-        book.theme.split(/[, ]+/).forEach(th => {
-          nodes.push({ id: th, type: "theme" });
-          links.push({ source: book.title, target: th });
-        });
+        if (book.theme) {
+          book.theme.split(/[, ]+/).forEach(th => {
+            nodes.push({ id: th, type: "theme" });
+            links.push({ source: book.title, target: th });
+          });
+        }
 
-        book.subject.split(/[, ]+/).forEach(sb => {
-          nodes.push({ id: sb, type: "subject" });
-          links.push({ source: book.title, target: sb });
-        });
+        if (book.subject) {
+          book.subject.split(/[, ]+/).forEach(sb => {
+            nodes.push({ id: sb, type: "subject" });
+            links.push({ source: book.title, target: sb });
+          });
+        }
 
-        nodes.push({ id: book.division, type: "division" });
-        links.push({ source: book.title, target: book.division });
+        if (book.division) {
+          nodes.push({ id: book.division, type: "division" });
+          links.push({ source: book.title, target: book.division });
+        }
       });
 
       return { nodes: Array.from(new Map(nodes.map(n => [n.id + n.type, n])).values()), links };
