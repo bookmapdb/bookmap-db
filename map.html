@@ -156,12 +156,28 @@
       renderGraph();
     }
 
-    function renderGraph() {
-      const svg = d3.select("#graph");
-      svg.selectAll("*").remove();
+function renderGraph() {
+  const svg = d3.select("#graph");
+  svg.selectAll("*").remove();
 
-      const nodes = [], links = [];
-      const tooltip = document.getElementById("tooltip");
+  const width = svg.node().clientWidth;
+  const height = 600;
+
+  // ✅ 줌/팬 기능을 적용하기 위한 그룹 g 추가
+  const g = svg.append("g");
+
+  // ✅ svg 전체에 zoom 이벤트 등록
+  svg.call(
+    d3.zoom()
+      .scaleExtent([0.5, 3]) // 최소 0.5배, 최대 3배
+      .on("zoom", (event) => {
+        g.attr("transform", event.transform);
+      })
+  );
+
+  const nodes = [], links = [];
+  const tooltip = document.getElementById("tooltip");
+
 
       // 노드 / 링크 구성
       books.forEach(book => {
