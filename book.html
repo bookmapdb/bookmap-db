@@ -1,18 +1,23 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>📖 BookMap — 도서 리스트</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BookMap — 북맵 리스트</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .filter-btn.active {
+      background-color: #2563eb;
+      color: white;
+    }
+  </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
-
   <!-- 상단 네비게이션 -->
   <header class="bg-blue-600 text-white shadow">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
       <h1 class="text-xl font-bold">📚 BookMap</h1>
-      <nav class="flex gap-6 text-sm">
+      <nav class="flex gap-6">
         <a href="index.html" class="hover:underline">홈</a>
         <a href="form.html" class="hover:underline">도서 등록</a>
         <a href="book.html" class="hover:underline">북맵 리스트</a>
@@ -21,161 +26,120 @@
     </div>
   </header>
 
-  <!-- 필터 UI -->
-  <section class="max-w-6xl mx-auto px-6 py-6">
-    <h2 class="text-xl font-bold mb-4">🔎 필터</h2>
+  <main class="max-w-6xl mx-auto px-6 py-8">
+    <h2 class="text-2xl font-semibold mb-6">🔎 필터</h2>
 
-    <!-- 가로 5열 정렬 -->
-    <div class="grid grid-cols-5 gap-4 text-sm">
-      <!-- 카테고리 -->
+    <!-- 필터 영역 -->
+    <div id="filters" class="space-y-4 mb-8">
       <div>
-        <h3 class="font-semibold mb-2">카테고리</h3>
-        <div id="filter-category" class="flex flex-wrap gap-2"></div>
+        <h3 class="font-medium mb-2">카테고리</h3>
+        <div id="category-filters" class="flex flex-wrap gap-2"></div>
       </div>
-
-      <!-- 단계 -->
       <div>
-        <h3 class="font-semibold mb-2">단계</h3>
-        <div id="filter-level" class="flex flex-wrap gap-2"></div>
+        <h3 class="font-medium mb-2">단계</h3>
+        <div id="level-filters" class="flex flex-wrap gap-2"></div>
       </div>
-
-      <!-- 도서구분 -->
       <div>
-        <h3 class="font-semibold mb-2">도서구분</h3>
-        <div id="filter-division" class="flex flex-wrap gap-2"></div>
+        <h3 class="font-medium mb-2">도서구분</h3>
+        <div id="division-filters" class="flex flex-wrap gap-2"></div>
       </div>
-
-      <!-- 저자 -->
       <div>
-        <h3 class="font-semibold mb-2">저자</h3>
-        <div id="filter-author" class="flex flex-wrap gap-2"></div>
+        <h3 class="font-medium mb-2">저자</h3>
+        <div id="author-filters" class="flex flex-wrap gap-2"></div>
       </div>
-
-      <!-- 주제 -->
       <div>
-        <h3 class="font-semibold mb-2">주제</h3>
-        <div id="filter-subject" class="flex flex-wrap gap-2"></div>
+        <h3 class="font-medium mb-2">주제 (Theme)</h3>
+        <div id="theme-filters" class="flex flex-wrap gap-2"></div>
+      </div>
+      <div>
+        <h3 class="font-medium mb-2">세부 주제 (Subject)</h3>
+        <div id="subject-filters" class="flex flex-wrap gap-2"></div>
       </div>
     </div>
-  </section>
 
-  <!-- 도서 리스트 -->
-  <main class="max-w-6xl mx-auto px-6 pb-10">
-    <div id="loading" class="text-center text-gray-500">도서 리스트를 로딩중입니다. 잠시만 기다려주세요...</div>
-    <div id="bookList" class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 mt-6 hidden"></div>
+    <!-- 도서 리스트 -->
+    <div id="book-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
   </main>
 
   <script>
-    let books = [];
-    let activeFilters = { category: [], level: [], division: [], author: [], subject: [] };
-
-    async function loadBooks() {
-      try {
-        const res = await fetch("books.json");
-        books = await res.json();
-        renderFilters();
-        renderBooks();
-        document.getElementById("loading").classList.add("hidden");
-        document.getElementById("bookList").classList.remove("hidden");
-      } catch (err) {
-        console.error("도서 불러오기 오류:", err);
-        document.getElementById("loading").innerText = "데이터를 불러오는 중 오류가 발생했습니다.";
-      }
+    async function fetchBooks() {
+      const res = await fetch("books.json");
+      return res.json();
     }
 
-    // ✅ 필터 버튼 생성
-    function renderFilters() {
-      const categories = new Set();
-      const levels = new Set();
-      const divisions = new Set();
-      const authors = new Set();
-      const subjects = new Set();
+    function createFilterButtons(values, containerId, key) {
+      const container = document.getElementById(containerId);
+      [...new Set(values.flatMap(v => v.split(/[, ]+/)))]
+        .filter(v => v.trim() !== "")
+        .forEach(v => {
+          const btn = document.createElement("button");
+          btn.textContent = v;
+          btn.className = "filter-btn px-3 py-1 border rounded-full text-sm";
+          btn.addEventListener("click", () => {
+            btn.classList.toggle("active");
+            applyFilters();
+          });
+          container.appendChild(btn);
+        });
+    }
 
-      books.forEach(b => {
-        if (b.category) b.category.split(",").map(x => categories.add(x.trim()));
-        if (b.level) levels.add(b.level.trim());
-        if (b.division) divisions.add(b.division.trim());
-        if (b.author) authors.add(b.author.trim());
-        if (b.subject) {
-          if (Array.isArray(b.subject)) {
-            b.subject.forEach(s => subjects.add(s.trim()));
-          } else {
-            b.subject.split(",").map(x => subjects.add(x.trim()));
+    function applyFilters() {
+      const activeFilters = {};
+      ["category", "level", "division", "author", "theme", "subject"].forEach(key => {
+        const selected = [...document.querySelectorAll(`#${key}-filters .active`)].map(b => b.textContent);
+        if (selected.length > 0) activeFilters[key] = selected;
+      });
+
+      document.querySelectorAll(".book-card").forEach(card => {
+        let visible = true;
+        for (const key in activeFilters) {
+          const value = card.dataset[key];
+          if (!activeFilters[key].some(f => value.includes(f))) {
+            visible = false;
+            break;
           }
         }
-      });
-
-      makeFilterButtons("filter-category", [...categories], "category");
-      makeFilterButtons("filter-level", [...levels], "level");
-      makeFilterButtons("filter-division", [...divisions], "division");
-      makeFilterButtons("filter-author", [...authors], "author");
-      makeFilterButtons("filter-subject", [...subjects], "subject");
-    }
-
-    function makeFilterButtons(containerId, items, type) {
-      const container = document.getElementById(containerId);
-      container.innerHTML = "";
-      items.forEach(item => {
-        const btn = document.createElement("button");
-        btn.innerText = item;
-        btn.className = "px-3 py-1 rounded-full border text-gray-700 hover:bg-blue-100";
-        btn.addEventListener("click", () => toggleFilter(type, item, btn));
-        container.appendChild(btn);
+        card.style.display = visible ? "block" : "none";
       });
     }
 
-    function toggleFilter(type, value, btn) {
-      const idx = activeFilters[type].indexOf(value);
-      if (idx === -1) {
-        activeFilters[type].push(value);
-        btn.classList.add("bg-blue-600", "text-white");
-      } else {
-        activeFilters[type].splice(idx, 1);
-        btn.classList.remove("bg-blue-600", "text-white");
-      }
-      renderBooks();
-    }
-
-    // ✅ 필터링 적용된 도서 리스트 렌더링
-    function renderBooks() {
-      const list = document.getElementById("bookList");
+    function renderBooks(books) {
+      const list = document.getElementById("book-list");
       list.innerHTML = "";
-
-      const filtered = books.filter(b => {
-        return (
-          (activeFilters.category.length === 0 || activeFilters.category.some(f => b.category?.includes(f))) &&
-          (activeFilters.level.length === 0 || activeFilters.level.includes(b.level)) &&
-          (activeFilters.division.length === 0 || activeFilters.division.includes(b.division)) &&
-          (activeFilters.author.length === 0 || activeFilters.author.includes(b.author)) &&
-          (activeFilters.subject.length === 0 || (Array.isArray(b.subject) ? b.subject.some(s => activeFilters.subject.includes(s)) : activeFilters.subject.some(f => b.subject?.includes(f))))
-        );
-      });
-
-      filtered.forEach(b => {
-        const card = document.createElement("a");
-        card.href = `book-detail.html?id=${b.id}`;
-        card.className = "block bg-white rounded-lg shadow hover:shadow-lg transition p-4";
+      books.forEach(book => {
+        const card = document.createElement("div");
+        card.className = "book-card bg-white rounded-lg shadow p-4";
+        card.dataset.category = book.category;
+        card.dataset.level = book.level;
+        card.dataset.division = book.division;
+        card.dataset.author = book.author;
+        card.dataset.theme = book.theme;
+        card.dataset.subject = book.subject;
 
         card.innerHTML = `
-          <img src="${b.image}" alt="${b.title}" class="w-full h-48 object-cover rounded mb-3">
-          <h3 class="text-lg font-bold mb-1">${b.title}</h3>
-          <p class="text-sm text-gray-600 mb-1">저자: ${b.author}</p>
-          <p class="text-sm text-gray-500">${b.publisher || ""}</p>
-          <div class="flex flex-wrap gap-2 mt-2 text-xs">
-            <span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full">${b.category || ""}</span>
-            <span class="px-2 py-1 bg-purple-100 text-purple-800 rounded-full">${b.level || ""}</span>
-            <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">${b.division || ""}</span>
+          <img src="${book.image}" alt="${book.title}" class="w-full h-48 object-cover rounded">
+          <h3 class="mt-3 font-semibold text-lg">${book.title}</h3>
+          <p class="text-sm text-gray-600">저자: ${book.author}</p>
+          <p class="text-sm text-gray-500">${book.publisher}</p>
+          <div class="mt-2 flex flex-wrap gap-1">
+            <span class="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded">${book.category}</span>
+            <span class="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded">${book.level}</span>
+            <span class="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">${book.division}</span>
           </div>
         `;
         list.appendChild(card);
       });
-
-      if (filtered.length === 0) {
-        list.innerHTML = `<p class="col-span-3 text-center text-gray-500">조건에 맞는 도서가 없습니다.</p>`;
-      }
     }
 
-    loadBooks();
+    fetchBooks().then(books => {
+      renderBooks(books);
+      createFilterButtons(books.map(b => b.category), "category-filters", "category");
+      createFilterButtons(books.map(b => b.level), "level-filters", "level");
+      createFilterButtons(books.map(b => b.division), "division-filters", "division");
+      createFilterButtons(books.map(b => b.author), "author-filters", "author");
+      createFilterButtons(books.map(b => b.theme), "theme-filters", "theme");
+      createFilterButtons(books.map(b => b.subject), "subject-filters", "subject");
+    });
   </script>
 </body>
 </html>
