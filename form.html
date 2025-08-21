@@ -24,64 +24,40 @@
   <!-- 도서 등록 폼 -->
   <main class="max-w-3xl mx-auto px-6 py-12">
     <h2 class="text-2xl font-bold mb-6">📖 새 도서 등록</h2>
-    <form id="bookForm" class="bg-white p-6 rounded-2xl shadow space-y-4">
-      <div>
-        <label class="block text-sm font-medium mb-1">도서명</label>
-        <input type="text" name="title" required class="w-full border rounded-lg p-2">
-      </div>
+    <form id="bookForm" class="space-y-4">
+  <input type="text" name="title" placeholder="도서명" class="w-full border p-2 rounded" required>
+  <input type="text" name="author" placeholder="저자" class="w-full border p-2 rounded" required>
+  <input type="text" name="publisher" placeholder="출판사" class="w-full border p-2 rounded">
 
-      <div>
-        <label class="block text-sm font-medium mb-1">저자</label>
-        <input type="text" name="author" required class="w-full border rounded-lg p-2">
-      </div>
+  <input type="text" name="category" placeholder="카테고리 (쉼표 구분, 다중선택 가능)" class="w-full border p-2 rounded">
 
-      <div>
-        <label class="block text-sm font-medium mb-1">카테고리 (쉼표 구분, 다중선택 가능)</label>
-        <input type="text" name="categories" placeholder="예: 소설, 해외문학" class="w-full border rounded-lg p-2">
-      </div>
+  <select name="level" class="w-full border p-2 rounded">
+    <option value="입문">입문</option>
+    <option value="초급">초급</option>
+    <option value="중급">중급</option>
+    <option value="고급">고급</option>
+  </select>
 
-      <div>
-        <label class="block text-sm font-medium mb-1">단계</label>
-        <select name="level" class="w-full border rounded-lg p-2">
-          <option value="입문">입문</option>
-          <option value="초급">초급</option>
-          <option value="중급">중급</option>
-          <option value="고급">고급</option>
-          <option value="전문">전문</option>
-        </select>
-      </div>
+  <select name="division" class="w-full border p-2 rounded">
+    <option value="국내서">국내서</option>
+    <option value="번역서">번역서</option>
+    <option value="번역서">원서</option>
+  </select>
 
-      <div>
-        <label class="block text-sm font-medium mb-1">도서구분</label>
-        <select name="type" class="w-full border rounded-lg p-2">
-          <option value="국내서">국내서</option>
-          <option value="원서">원서</option>
-          <option value="번역서">번역서</option>
-        </select>
-      </div>
+  <!-- 단일 구매 링크 -->
+  <input type="url" name="buy_link" placeholder="도서 구매 링크" class="w-full border p-2 rounded">
 
-      <div>
-        <label class="block text-sm font-medium mb-1">링크 (알라딘)</label>
-        <input type="url" name="link_aladin" placeholder="https://..." class="w-full border rounded-lg p-2">
-      </div>
-      <div>
-        <label class="block text-sm font-medium mb-1">링크 (교보문고)</label>
-        <input type="url" name="link_kyobo" placeholder="https://..." class="w-full border rounded-lg p-2">
-      </div>
-      <div>
-        <label class="block text-sm font-medium mb-1">링크 (예스24)</label>
-        <input type="url" name="link_yes24" placeholder="https://..." class="w-full border rounded-lg p-2">
-      </div>
+  <!-- 이미지 -->
+  <input type="url" name="image" placeholder="이미지 URL" class="w-full border p-2 rounded">
 
-      <div>
-        <label class="block text-sm font-medium mb-1">이미지 URL</label>
-        <input type="url" name="image" placeholder="https://..." class="w-full border rounded-lg p-2">
-      </div>
+  <!-- 설명 -->
+  <textarea name="description" placeholder="도서 설명" class="w-full border p-2 rounded"></textarea>
 
-      <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700">
-        등록하기
-      </button>
-    </form>
+  <!-- 추천 이유 -->
+  <textarea name="reason" placeholder="추천 이유" class="w-full border p-2 rounded"></textarea>
+
+  <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">등록하기</button>
+</form>
 
     <p id="statusMessage" class="mt-4 text-center font-medium"></p>
   </main>
