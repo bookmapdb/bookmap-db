@@ -53,7 +53,9 @@
       <!-- 세부 주제 -->
       <div>
         <label class="block font-medium mb-1">세부 주제</label>
-        <input type="text" id="subject" name="subject" placeholder="예: 죽음, 도서관, 사회 — 콤마(,)로 여러 개 입력 가능" class="w-full border px-3 py-2 rounded">
+        <input type="text" id="subject" name="subject" 
+          placeholder="예: 죽음, 도서관, 사회 — 콤마(,)로 여러 개 입력 가능" 
+          class="w-full border px-3 py-2 rounded">
       </div>
 
       <!-- 카테고리 -->
@@ -108,6 +110,12 @@
         <input type="url" id="image" name="image" required class="w-full border px-3 py-2 rounded">
       </div>
 
+      <!-- 📌 설명 -->
+      <div>
+        <label class="block font-medium mb-1">책 설명</label>
+        <textarea id="description" name="description" rows="3" class="w-full border px-3 py-2 rounded"></textarea>
+      </div>
+
       <!-- 추천 이유 -->
       <div>
         <label class="block font-medium mb-1">추천 이유</label>
@@ -125,10 +133,6 @@
       e.preventDefault();
 
       const formData = Object.fromEntries(new FormData(e.target).entries());
-
-      // ✅ 선택 필드 방어 처리
-      formData.original_title = formData.original_title || "";
-      formData.original_buy_link = formData.original_buy_link || "";
 
       try {
         const res = await fetch("https://script.google.com/macros/s/AKfycbywJOW4dOlmDrzood3ka_jizri4K7sFqTJDPG8ibnmDrxXZgFWrFnjMEv38C5pCtjp_/exec", {
