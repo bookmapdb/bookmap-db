@@ -11,10 +11,10 @@
   <!-- 상단 네비게이션 -->
   <header class="bg-blue-600 text-white shadow">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-      <h1 class="text-xl font-bold">📚 BookMap</h1>
+      <h1 class="text-xl font-bold cursor-pointer" onclick="location.href='index.html'">📚 BookMap</h1>
       <nav class="flex gap-6">
         <a href="index.html" class="hover:underline">홈</a>
-        <a href="form.html" class="hover:underline">도서 등록</a>
+        <a href="form.html" class="hover:underline font-semibold">도서 등록</a>
         <a href="book.html" class="hover:underline">북맵 리스트</a>
         <a href="map.html" class="hover:underline">북맵 관계도</a>
       </nav>
@@ -25,191 +25,273 @@
   <main class="max-w-3xl mx-auto px-6 py-12">
     <h2 class="text-2xl font-bold mb-6">📖 새 도서 등록</h2>
     
-    <!-- 임시 저장소 안내 -->
-    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+    <!-- 구글 시트 연동 안내 -->
+    <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
       <div class="flex items-start">
         <div class="flex-shrink-0">
-          <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
           </svg>
         </div>
         <div class="ml-3">
-          <h3 class="text-sm font-medium text-blue-800">임시 저장소 사용 중</h3>
-          <div class="mt-2 text-sm text-blue-700">
-            <p>현재 등록한 도서는 브라우저에 임시로 저장됩니다. 페이지를 새로고침하면 데이터가 유지되지만, 브라우저를 완전히 종료하거나 캐시를 삭제하면 사라질 수 있습니다.</p>
+          <h3 class="text-sm font-medium text-green-800">구글 시트 연동 중</h3>
+          <div class="mt-2 text-sm text-green-700">
+            <p>등록한 도서는 구글 스프레드시트에 자동으로 저장되며, 실시간으로 북맵 리스트에 반영됩니다.</p>
           </div>
         </div>
       </div>
     </div>
 
-    <form id="bookForm" class="space-y-4">
-      <div>
-        <label class="block text-sm font-medium mb-2">도서명 *</label>
-        <input type="text" name="title" placeholder="도서명을 입력하세요" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+    <form id="bookForm" class="space-y-6">
+      <!-- 기본 정보 -->
+      <div class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-lg font-semibold mb-4 text-gray-800">📚 기본 정보</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">도서명 *</label>
+            <input type="text" name="title" placeholder="도서명을 입력하세요" 
+                   class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">저자 *</label>
+            <input type="text" name="author" placeholder="저자명을 입력하세요" 
+                   class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">출판사</label>
+            <input type="text" name="publisher" placeholder="출판사를 입력하세요" 
+                   class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          </div>
+        </div>
       </div>
 
-      <div>
-        <label class="block text-sm font-medium mb-2">저자 *</label>
-        <input type="text" name="author" placeholder="저자명을 입력하세요" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+      <!-- 분류 정보 -->
+      <div class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-lg font-semibold mb-4 text-gray-800">🏷️ 분류 정보</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">대주제 (theme)</label>
+            <input type="text" name="theme" placeholder="예: 철학, 문학, 개발" 
+                   class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">카테고리</label>
+            <input type="text" name="category" placeholder="예: 소설, 한국문학 (쉼표로 구분)" 
+                   class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">도서구분</label>
+            <select name="division" class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="">선택하세요</option>
+              <option value="국내서">국내서</option>
+              <option value="번역서">번역서</option>
+              <option value="원서">원서</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">난이도</label>
+            <select name="level" class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="">선택하세요</option>
+              <option value="입문">입문</option>
+              <option value="초급">초급</option>
+              <option value="중급">중급</option>
+              <option value="고급">고급</option>
+              <option value="전문">전문</option>
+            </select>
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">소주제 (subject)</label>
+            <input type="text" name="subject" placeholder="예: 죽음, 도서관, 공정 (쉼표로 구분)" 
+                   class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          </div>
+        </div>
       </div>
 
-      <div>
-        <label class="block text-sm font-medium mb-2">출판사</label>
-        <input type="text" name="publisher" placeholder="출판사를 입력하세요" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+      <!-- 원서 정보 (선택사항) -->
+      <div class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-lg font-semibold mb-4 text-gray-800">🌍 원서 정보 (번역서인 경우)</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">원서 제목</label>
+            <input type="text" name="original_title" placeholder="Original Title" 
+                   class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">원서 구매 링크</label>
+            <input type="url" name="original_buy_link" placeholder="https://amazon.com/..." 
+                   class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          </div>
+        </div>
       </div>
 
-      <div>
-        <label class="block text-sm font-medium mb-2">카테고리</label>
-        <input type="text" name="category" placeholder="예: 소설, 한국문학 (쉼표로 구분)" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+      <!-- 추가 정보 -->
+      <div class="bg-white p-6 rounded-lg shadow">
+        <h3 class="text-lg font-semibold mb-4 text-gray-800">📋 추가 정보</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">구매 링크</label>
+            <input type="url" name="buy_link" placeholder="https://www.aladin.co.kr/..." 
+                   class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">이미지 URL</label>
+            <input type="url" name="image" placeholder="https://image.aladin.co.kr/..." 
+                   class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">도서 설명</label>
+            <textarea name="description" rows="4" placeholder="도서에 대한 간단한 설명을 입력하세요" 
+                      class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">추천 이유</label>
+            <textarea name="reason" rows="3" placeholder="이 도서를 추천하는 이유를 입력하세요" 
+                      class="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+          </div>
+        </div>
       </div>
 
-      <div>
-        <label class="block text-sm font-medium mb-2">단계</label>
-        <select name="level" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-          <option value="">선택하세요</option>
-          <option value="입문">입문</option>
-          <option value="초급">초급</option>
-          <option value="중급">중급</option>
-          <option value="고급">고급</option>
-          <option value="전문">전문</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium mb-2">도서구분</label>
-        <select name="division" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-          <option value="">선택하세요</option>
-          <option value="국내서">국내서</option>
-          <option value="번역서">번역서</option>
-          <option value="원서">원서</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium mb-2">대주제 (theme)</label>
-        <input type="text" name="theme" placeholder="예: 철학, 문학, 사회" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium mb-2">소주제 (subject)</label>
-        <input type="text" name="subject" placeholder="예: 정의, 자유, 도서관 (쉼표로 구분)" class="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-      </div>
-      
-      <div>
-        <label class="block text-sm font-medium mb-2">도서 구매 링크</label>
-        <input type="url" name="buy_link" placeholder="https://example.com" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium mb-2">원서 구매 링크</label>
-        <input type="url" name="original_buy_link" placeholder="https://example.com" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium mb-2">이미지 URL</label>
-        <input type="url" name="image" placeholder="https://example.com/image.jpg" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium mb-2">도서 설명</label>
-        <textarea name="description" placeholder="도서에 대한 간단한 설명을 입력하세요" rows="4" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium mb-2">추천 이유</label>
-        <textarea name="reason" placeholder="이 도서를 추천하는 이유를 입력하세요" rows="3" class="w-full border p-2 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-      </div>
-
+      <!-- 버튼 -->
       <div class="flex gap-4">
-        <button type="submit" class="flex-1 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium">
-          등록하기
+        <button type="submit" 
+                class="flex-1 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 font-medium transition-colors">
+          <span class="button-text">📚 등록하기</span>
+          <span class="loading-text hidden">
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            등록 중...
+          </span>
         </button>
-        <button type="reset" class="px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+        <button type="reset" 
+                class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors">
           초기화
         </button>
       </div>
     </form>
 
+    <!-- 상태 메시지 -->
     <div id="statusMessage" class="mt-6 p-4 rounded-lg hidden"></div>
   </main>
 
   <script>
     const form = document.getElementById("bookForm");
     const statusMessage = document.getElementById("statusMessage");
-
-    // 로컬 스토리지에서 기존 도서 데이터 불러오기
-    function getStoredBooks() {
-      const stored = localStorage.getItem('bookmap_books');
-      return stored ? JSON.parse(stored) : [];
-    }
-
-    // 로컬 스토리지에 도서 데이터 저장하기
-    function saveBooks(books) {
-      localStorage.setItem('bookmap_books', JSON.stringify(books));
-    }
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbywJOW4dOlmDrzood3ka_jizri4K7sFqTJDPG8ibnmDrxXZgFWrFnjMEv38C5pCtjp_/exec";
 
     // 상태 메시지 표시 함수
     function showMessage(message, type = 'success') {
-      statusMessage.className = `mt-6 p-4 rounded-lg ${type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`;
-      statusMessage.textContent = message;
+      const bgColor = type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 
+                      type === 'error' ? 'bg-red-50 border-red-200 text-red-800' : 
+                      'bg-blue-50 border-blue-200 text-blue-800';
+      
+      statusMessage.className = `mt-6 p-4 rounded-lg border ${bgColor}`;
+      statusMessage.innerHTML = message;
       statusMessage.classList.remove('hidden');
       
-      // 3초 후 메시지 숨기기
-      setTimeout(() => {
-        statusMessage.classList.add('hidden');
-      }, 3000);
+      // 성공 시 5초 후 메시지 숨기기
+      if (type === 'success') {
+        setTimeout(() => {
+          statusMessage.classList.add('hidden');
+        }, 5000);
+      }
     }
 
+    // 로딩 상태 토글
+    function toggleLoading(isLoading) {
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const buttonText = submitBtn.querySelector('.button-text');
+      const loadingText = submitBtn.querySelector('.loading-text');
+      
+      if (isLoading) {
+        buttonText.classList.add('hidden');
+        loadingText.classList.remove('hidden');
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+      } else {
+        buttonText.classList.remove('hidden');
+        loadingText.classList.add('hidden');
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+      }
+    }
+
+    // 폼 제출 처리
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
       try {
+        toggleLoading(true);
+        showMessage('📤 도서 등록 중입니다...', 'info');
+
         const formData = new FormData(form);
         const data = Object.fromEntries(formData.entries());
         
-        // ID 생성 (현재 시간 기반)
-        data.id = Date.now();
-        
-        // 빈 값들을 제거하거나 기본값 설정
+        // 빈 값들을 빈 문자열로 설정
         Object.keys(data).forEach(key => {
           if (!data[key]) {
             data[key] = "";
           }
         });
 
-        // 기존 도서 목록 가져오기
-        const books = getStoredBooks();
+        console.log('전송 데이터:', data); // 디버깅용
+
+        const response = await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            'postData': JSON.stringify(data)
+          })
+        });
+
+        // Google Apps Script는 항상 200을 반환하므로 응답 내용을 확인
+        const responseText = await response.text();
+        console.log('응답:', responseText); // 디버깅용
         
-        // 새 도서 추가
-        books.push(data);
-        
-        // 저장
-        saveBooks(books);
-        
-        // 성공 메시지 표시
-        showMessage("✅ 도서가 성공적으로 등록되었습니다! 3초 후 리스트 페이지로 이동합니다.");
-        
-        // 폼 초기화
-        form.reset();
-        
-        // 3초 후 리스트 페이지로 이동
-        setTimeout(() => {
-          window.location.href = "book.html";
-        }, 3000);
+        let result;
+        try {
+          result = JSON.parse(responseText);
+        } catch (parseError) {
+          console.log('JSON 파싱 실패, 텍스트 응답:', responseText);
+          // 성공적으로 완료된 것으로 간주
+          result = { success: true };
+        }
+
+        if (result.success !== false) {
+          showMessage('✅ 도서가 성공적으로 등록되었습니다! 3초 후 리스트 페이지로 이동합니다.', 'success');
+          
+          // 폼 초기화
+          form.reset();
+          
+          // 3초 후 리스트 페이지로 이동
+          setTimeout(() => {
+            window.location.href = "book.html";
+          }, 3000);
+          
+        } else {
+          throw new Error(result.error || '등록 중 오류가 발생했습니다.');
+        }
         
       } catch (error) {
         console.error('등록 오류:', error);
-        showMessage("❌ 등록 중 오류가 발생했습니다. 다시 시도해주세요.", 'error');
+        showMessage(`❌ 등록 중 오류가 발생했습니다: ${error.message}`, 'error');
+      } finally {
+        toggleLoading(false);
       }
     });
 
-    // 폼 검증
+    // 실시간 폼 검증
     form.addEventListener('input', (e) => {
       const target = e.target;
       if (target.required && !target.value.trim()) {
-        target.classList.add('border-red-300');
+        target.classList.add('border-red-300', 'focus:border-red-500', 'focus:ring-red-500');
+        target.classList.remove('border-gray-300', 'focus:border-blue-500', 'focus:ring-blue-500');
       } else {
-        target.classList.remove('border-red-300');
+        target.classList.remove('border-red-300', 'focus:border-red-500', 'focus:ring-red-500');
+        target.classList.add('border-gray-300', 'focus:border-blue-500', 'focus:ring-blue-500');
       }
     });
   </script>
