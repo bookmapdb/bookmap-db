@@ -111,12 +111,30 @@
     let books = [];
     let activeFilters = { category: [], level: [], division: [], author: [], subject: [] };
 
-    async function loadBooks() {
-      const res = await fetch(API_URL);
-      books = await res.json();
-      renderFilters();
-      renderGraph();
-    }
+   async function loadBooks() {
+  const loadingEl = document.getElementById("loading");
+  const graphEl = document.getElementById("graph");
+
+  // ✅ 로딩 시작 → 로딩 표시 보이기
+  loadingEl.style.display = "flex";
+  graphEl.style.display = "none";
+
+  try {
+    const res = await fetch(API_URL);
+    books = await res.json();
+
+    renderFilters();
+    renderGraph();
+
+  } catch (err) {
+    loadingEl.textContent = "데이터 불러오기 실패 😢";
+  } finally {
+    // ✅ 로딩 끝 → 로딩 숨기기 & 그래프 보이기
+    loadingEl.style.display = "none";
+    graphEl.style.display = "block";
+  }
+}
+
 
     function renderFilters() {
       const categories = new Set(), levels = new Set(), divisions = new Set(), authors = new Set(), subjects = new Set();
