@@ -30,7 +30,7 @@
       도서명이나 저자 이름에 마우스를 올리면 간단한 설명을 볼 수 있으며, 클릭하면 해당 도서 상세페이지로 이동합니다.
     </p>
 
-    <!-- 필터 -->
+    <!-- 필터 (book.html과 동일) -->
     <section class="bg-white p-6 rounded-xl shadow mb-6 space-y-4">
       <div>
         <h3 class="font-semibold mb-2">카테고리</h3>
@@ -58,7 +58,7 @@
     <section class="bg-white p-4 rounded-xl shadow mb-6">
       <div class="flex flex-wrap gap-6 items-center">
         <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-black"></span> 큰 주제</div>
-        <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-brown-600"></span> 세부 주제</div>
+        <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-yellow-700"></span> 세부 주제</div>
         <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-blue-500"></span> 저자</div>
         <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-orange-500"></span> 카테고리</div>
         <div class="flex items-center gap-2"><span class="w-4 h-4 rounded-full bg-green-500"></span> 도서구분</div>
@@ -73,103 +73,101 @@
   </main>
 
   <script>
+    // 필터 데이터 (book.html과 동일하게)
+    const categories = ["소설","한국문학","해외문학","철학","사회","개발","프로그래밍","기독교","개신교","신학","입문"];
+    const levels = ["입문","초급","중급","고급"];
+    const divisions = ["국내서","원서","번역서"];
+    const authors = ["김영하","매트 헤이그","마이클 샌델","로버트 C. 마틴","김태희"];
+    const subjects = ["죽음","도서관","공정","사회","프로그래밍","교육","신앙교육"];
+
+    function renderFilters(containerId, items) {
+      const container = document.getElementById(containerId);
+      items.forEach(item => {
+        const btn = document.createElement("button");
+        btn.textContent = item;
+        btn.className = "px-3 py-1 border rounded-full text-sm hover:bg-blue-100";
+        btn.addEventListener("click", () => {
+          btn.classList.toggle("bg-blue-600");
+          btn.classList.toggle("text-white");
+          applyFilters();
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    renderFilters("category-filters", categories);
+    renderFilters("level-filters", levels);
+    renderFilters("division-filters", divisions);
+    renderFilters("author-filters", authors);
+    renderFilters("subject-filters", subjects);
+
+    // 노드 색상
     const colors = {
-      theme: "#111827",      // 큰 주제 (검은색)
-      subject: "#92400e",    // 세부 주제 (브라운)
-      author: "#2563eb",     // 저자 (파란색)
-      category: "#f59e0b",   // 카테고리 (주황색)
-      division: "#10b981",   // 도서구분 (초록색)
-      book: "#9ca3af"        // 도서 (회색)
+      theme: "#111827",
+      subject: "#b45309",
+      author: "#2563eb",
+      category: "#f59e0b",
+      division: "#10b981",
+      book: "#9ca3af"
     };
 
-    // 샘플 데이터 (실제는 fetch로 불러오기)
+    // 샘플 노드/링크
     const nodes = [
       { id: "문학", type: "theme" },
-      { id: "철학", type: "theme" },
-      { id: "사회", type: "category" },
       { id: "김영하", type: "author" },
       { id: "작별인사", type: "book" },
-      { id: "입문", type: "division" }
+      { id: "소설", type: "category" },
+      { id: "국내서", type: "division" }
     ];
-
     const links = [
       { source: "김영하", target: "작별인사" },
       { source: "문학", target: "작별인사" },
-      { source: "철학", target: "사회" }
+      { source: "소설", target: "작별인사" },
+      { source: "국내서", target: "작별인사" }
     ];
 
     const svg = d3.select("#graph");
     const width = +svg.node().getBoundingClientRect().width;
     const height = +svg.attr("height");
-
     const g = svg.append("g");
 
-    const zoom = d3.zoom().on("zoom", (event) => {
-      g.attr("transform", event.transform);
-    });
-    svg.call(zoom);
+    svg.call(d3.zoom().on("zoom", e => g.attr("transform", e.transform)));
 
     const simulation = d3.forceSimulation(nodes)
       .force("link", d3.forceLink(links).id(d => d.id).distance(150))
       .force("charge", d3.forceManyBody().strength(-400))
-      .force("center", d3.forceCenter(width / 2, height / 2));
+      .force("center", d3.forceCenter(width/2, height/2));
 
-    const link = g.append("g")
-      .attr("stroke", "#ccc")
-      .selectAll("line")
-      .data(links)
-      .join("line");
+    const link = g.append("g").attr("stroke","#ccc")
+      .selectAll("line").data(links).join("line");
 
     const node = g.append("g")
-      .selectAll("circle")
-      .data(nodes)
-      .join("circle")
-      .attr("r", 18)
-      .attr("fill", d => colors[d.type] || "#999")
+      .selectAll("circle").data(nodes).join("circle")
+      .attr("r",18).attr("fill",d=>colors[d.type])
       .call(d3.drag()
-        .on("start", dragstarted)
-        .on("drag", dragged)
-        .on("end", dragended));
+        .on("start",dragstarted)
+        .on("drag",dragged)
+        .on("end",dragended));
 
     const label = g.append("g")
-      .selectAll("text")
-      .data(nodes)
-      .join("text")
-      .text(d => d.id)
-      .attr("font-size", 12)
-      .attr("fill", "#111")   // 검정 텍스트
-      .attr("dy", 4)
-      .attr("text-anchor", "middle");
+      .selectAll("text").data(nodes).join("text")
+      .text(d=>d.id).attr("font-size",12)
+      .attr("fill","#111").attr("dy",4).attr("text-anchor","middle");
 
-    simulation.on("tick", () => {
-      link
-        .attr("x1", d => d.source.x)
-        .attr("y1", d => d.source.y)
-        .attr("x2", d => d.target.x)
-        .attr("y2", d => d.target.y);
-
-      node
-        .attr("cx", d => d.x)
-        .attr("cy", d => d.y);
-
-      label
-        .attr("x", d => d.x)
-        .attr("y", d => d.y);
+    simulation.on("tick",()=>{
+      link.attr("x1",d=>d.source.x).attr("y1",d=>d.source.y)
+          .attr("x2",d=>d.target.x).attr("y2",d=>d.target.y);
+      node.attr("cx",d=>d.x).attr("cy",d=>d.y);
+      label.attr("x",d=>d.x).attr("y",d=>d.y);
     });
 
-    function dragstarted(event, d) {
-      if (!event.active) simulation.alphaTarget(0.3).restart();
-      d.fx = d.x;
-      d.fy = d.y;
-    }
-    function dragged(event, d) {
-      d.fx = event.x;
-      d.fy = event.y;
-    }
-    function dragended(event, d) {
-      if (!event.active) simulation.alphaTarget(0);
-      d.fx = null;
-      d.fy = null;
+    function dragstarted(e,d){if(!e.active)simulation.alphaTarget(0.3).restart();d.fx=d.x;d.fy=d.y;}
+    function dragged(e,d){d.fx=e.x;d.fy=e.y;}
+    function dragended(e,d){if(!e.active)simulation.alphaTarget(0);d.fx=null;d.fy=null;}
+
+    // 필터 적용 (추후 데이터 연동)
+    function applyFilters(){
+      console.log("필터 적용됨 (데이터 연동 필요)");
     }
   </script>
 </body>
