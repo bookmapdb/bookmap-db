@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -226,12 +226,12 @@ function renderGraph() {
         .force("charge", d3.forceManyBody().strength(-300))
         .force("center", d3.forceCenter(svg.node().clientWidth / 2, 300));
 
-      const link = svg.append("g").selectAll("line")
+      const link = g.append("g").selectAll("line")
         .data(links)
         .enter().append("line")
         .attr("stroke", "#aaa");
 
-      const node = svg.append("g").selectAll("circle")
+      const node = g.append("g").selectAll("circle")
         .data(uniqueNodes)
         .enter().append("circle")
         .attr("r", 12)
@@ -263,12 +263,12 @@ function renderGraph() {
         }
       });
 
-      const label = svg.append("g").selectAll("text")
-        .data(uniqueNodes)
-        .enter().append("text")
-        .text(d => d.name)
-        .attr("font-size", "10px")
-        .attr("dy", -18);
+    const label = g.append("g").selectAll("text")
+      .data(uniqueNodes)
+      .enter().append("text")
+      .text(d => d.name)
+      .attr("font-size", "10px")
+      .attr("dy", -18);
 
       simulation.on("tick", () => {
         link.attr("x1", d => d.source.x)
