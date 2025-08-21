@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BookMap — 도서 관계도</title>
+  <title>BookMap — 북맵 보기</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vis-network/standalone/umd/vis-network.min.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
+
   <!-- 상단 네비게이션 -->
   <header class="bg-blue-600 text-white shadow">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
@@ -22,175 +23,214 @@
   </header>
 
   <!-- 메인 -->
-  <main class="max-w-6xl mx-auto px-6 py-10">
-    <h2 class="text-2xl font-bold mb-6">📖 도서 관계도</h2>
+  <main class="max-w-7xl mx-auto px-6 py-10">
+    <h2 class="text-2xl font-bold mb-6">북맵 관계도</h2>
 
     <!-- 필터 -->
-    <section class="bg-white p-6 rounded-xl shadow mb-8">
-      <div class="mb-3 font-semibold">필터</div>
-      <div class="flex flex-wrap gap-2 mb-2" id="filter-category"></div>
-      <div class="flex flex-wrap gap-2 mb-2" id="filter-level"></div>
-      <div class="flex flex-wrap gap-2 mb-2" id="filter-division"></div>
-      <div class="flex flex-wrap gap-2 mb-2" id="filter-theme"></div>
-      <div class="flex flex-wrap gap-2 mb-2" id="filter-subject"></div>
-      <div class="flex flex-wrap gap-2 mb-2" id="filter-author"></div>
-
-      <p class="text-sm text-gray-500 mt-4">🟢 큰 주제 / ⚫ 세부 주제 / 🔵 카테고리 / 🟣 저자 / 🔴 도서 노드</p>
+    <section class="bg-white p-6 rounded-xl shadow mb-6">
+      <h3 class="font-semibold mb-4">필터</h3>
+      <div class="flex flex-wrap gap-3">
+        <button onclick="filterBy('all')" class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">전체</button>
+        <button onclick="filterBy('theme')" class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">주제</button>
+        <button onclick="filterBy('subject')" class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">세부 주제</button>
+        <button onclick="filterBy('author')" class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">저자</button>
+        <button onclick="filterBy('category')" class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">카테고리</button>
+        <button onclick="filterBy('division')" class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">도서구분</button>
+      </div>
     </section>
 
+    <!-- 로딩 표시 -->
+    <div id="loading" class="text-center text-gray-500 my-6">
+      ⏳ 북맵 관계도를 로딩중입니다. 잠시만 기다려주세요. 감사합니다.
+    </div>
+
     <!-- 관계도 -->
-    <section class="bg-white p-6 rounded-xl shadow">
-      <div id="loading" class="text-center text-gray-500">북맵 관계도를 로딩중입니다. 잠시만 기다려주세요. 감사합니다.</div>
-      <svg id="graph" width="100%" height="700"></svg>
+    <section id="mynetwork" class="w-full h-[700px] bg-white rounded-xl shadow"></section>
+
+    <!-- 범례 -->
+    <section class="mt-6 bg-white p-4 rounded-xl shadow">
+      <h3 class="font-semibold mb-2">노드 색상 안내</h3>
+      <ul class="text-sm text-gray-700 space-y-1">
+        <li><span class="inline-block w-4 h-4 bg-black rounded-full mr-2"></span> 큰 주제 (Theme)</li>
+        <li><span class="inline-block w-4 h-4 bg-gray-500 rounded-full mr-2"></span> 세부 주제 (Subject)</li>
+        <li><span class="inline-block w-4 h-4 bg-green-500 rounded-full mr-2"></span> 저자</li>
+        <li><span class="inline-block w-4 h-4 bg-blue-500 rounded-full mr-2"></span> 카테고리</li>
+        <li><span class="inline-block w-4 h-4 bg-orange-500 rounded-full mr-2"></span> 도서구분</li>
+        <li><span class="inline-block w-4 h-4 bg-purple-500 rounded-full mr-2"></span> 도서</li>
+      </ul>
     </section>
   </main>
 
   <script>
-    async function loadMap() {
-      try {
-        const res = await fetch("https://script.google.com/macros/s/AKfycbywJOW4dOlmDrzood3ka_jizri4K7sFqTJDPG8ibnmDrxXZgFWrFnjMEv38C5pCtjp_/exec");
-        const books = await res.json();
+    const API_URL = "https://script.google.com/macros/s/AKfycbywJOW4dOlmDrzood3ka_jizri4K7sFqTJDPG8ibnmDrxXZgFWrFnjMEv38C5pCtjp_/exec";
 
+    let network, nodes, edges;
+    let allNodes = [], allEdges = [];
+
+    async function loadData() {
+      try {
+        const res = await fetch(API_URL);
+        const books = await res.json();
         document.getElementById("loading").classList.add("hidden");
 
-        // 데이터 정리
-        let nodes = [];
-        let links = [];
+        const nodeSet = new vis.DataSet();
+        const edgeSet = new vis.DataSet();
+
+        // 중복 방지를 위한 Set
+        const addedNodes = new Set();
+        const addedEdges = new Set();
 
         books.forEach(book => {
           // 도서 노드
-          nodes.push({ id: book.title, group: "book" });
-
-          // 저자
-          if (book.author) {
-            nodes.push({ id: book.author, group: "author" });
-            links.push({ source: book.author, target: book.title });
+          if (!addedNodes.has(`book-${book.id}`)) {
+            nodeSet.add({
+              id: `book-${book.id}`,
+              label: book.title,
+              group: "book",
+              color: "#9333ea"
+            });
+            addedNodes.add(`book-${book.id}`);
           }
 
           // 큰 주제
           if (book.theme) {
-            nodes.push({ id: book.theme, group: "theme" });
-            links.push({ source: book.theme, target: book.title });
+            const themeId = `theme-${book.theme}`;
+            if (!addedNodes.has(themeId)) {
+              nodeSet.add({
+                id: themeId,
+                label: book.theme,
+                group: "theme",
+                color: "#000000",
+                font: { color: "#ffffff" }
+              });
+              addedNodes.add(themeId);
+            }
+            if (!addedEdges.has(`${book.id}-${themeId}`)) {
+              edgeSet.add({ from: `book-${book.id}`, to: themeId });
+              addedEdges.add(`${book.id}-${themeId}`);
+            }
           }
 
-          // 세부 주제 (배열 처리)
+          // 세부 주제 (콤마 분리)
           if (book.subject) {
-            const subjects = Array.isArray(book.subject)
-              ? book.subject
-              : (book.subject || "").split(",").map(s => s.trim());
+            let subjects = String(book.subject).split(",").map(s => s.trim());
             subjects.forEach(sub => {
-              if (sub) {
-                nodes.push({ id: sub, group: "subject" });
-                links.push({ source: sub, target: book.title });
+              const subjectId = `subject-${sub}`;
+              if (!addedNodes.has(subjectId)) {
+                nodeSet.add({
+                  id: subjectId,
+                  label: sub,
+                  group: "subject",
+                  color: "#6b7280",
+                  font: { color: "#ffffff" }
+                });
+                addedNodes.add(subjectId);
+              }
+              if (!addedEdges.has(`${book.id}-${subjectId}`)) {
+                edgeSet.add({ from: `book-${book.id}`, to: subjectId });
+                addedEdges.add(`${book.id}-${subjectId}`);
               }
             });
           }
 
+          // 저자
+          if (book.author) {
+            const authorId = `author-${book.author}`;
+            if (!addedNodes.has(authorId)) {
+              nodeSet.add({
+                id: authorId,
+                label: book.author,
+                group: "author",
+                color: "#22c55e"
+              });
+              addedNodes.add(authorId);
+            }
+            if (!addedEdges.has(`${book.id}-${authorId}`)) {
+              edgeSet.add({ from: `book-${book.id}`, to: authorId });
+              addedEdges.add(`${book.id}-${authorId}`);
+            }
+          }
+
           // 카테고리
           if (book.category) {
-            const cats = book.category.split(",").map(c => c.trim());
-            cats.forEach(cat => {
-              nodes.push({ id: cat, group: "category" });
-              links.push({ source: cat, target: book.title });
+            let categories = String(book.category).split(",").map(c => c.trim());
+            categories.forEach(cat => {
+              const categoryId = `category-${cat}`;
+              if (!addedNodes.has(categoryId)) {
+                nodeSet.add({
+                  id: categoryId,
+                  label: cat,
+                  group: "category",
+                  color: "#3b82f6"
+                });
+                addedNodes.add(categoryId);
+              }
+              if (!addedEdges.has(`${book.id}-${categoryId}`)) {
+                edgeSet.add({ from: `book-${book.id}`, to: categoryId });
+                addedEdges.add(`${book.id}-${categoryId}`);
+              }
             });
           }
-        });
 
-        // 중복 제거
-        nodes = Array.from(new Map(nodes.map(n => [n.id, n])).values());
-
-        // D3 Force Graph
-        const svg = d3.select("#graph");
-        const width = document.getElementById("graph").clientWidth;
-        const height = 700;
-
-        const simulation = d3.forceSimulation(nodes)
-          .force("link", d3.forceLink(links).id(d => d.id).distance(120))
-          .force("charge", d3.forceManyBody().strength(-300))
-          .force("center", d3.forceCenter(width / 2, height / 2));
-
-        const link = svg.append("g")
-          .attr("stroke", "#999")
-          .attr("stroke-opacity", 0.6)
-          .selectAll("line")
-          .data(links)
-          .enter().append("line")
-          .attr("stroke-width", 1.5);
-
-        const color = d => {
-          if (d.group === "theme") return "green";      // 큰 주제
-          if (d.group === "subject") return "black";    // 세부 주제
-          if (d.group === "category") return "blue";    // 카테고리
-          if (d.group === "author") return "purple";    // 저자
-          return "red";                                 // 도서
-        };
-
-        const node = svg.append("g")
-          .selectAll("circle")
-          .data(nodes)
-          .enter().append("circle")
-          .attr("r", 8)
-          .attr("fill", color)
-          .call(drag(simulation))
-          .on("click", (event, d) => {
-            const book = books.find(b => b.title === d.id);
-            if (book) {
-              window.location.href = `detail.html?id=${book.id}`;
+          // 도서구분
+          if (book.division) {
+            const divisionId = `division-${book.division}`;
+            if (!addedNodes.has(divisionId)) {
+              nodeSet.add({
+                id: divisionId,
+                label: book.division,
+                group: "division",
+                color: "#f97316"
+              });
+              addedNodes.add(divisionId);
             }
-          });
-
-        const label = svg.append("g")
-          .selectAll("text")
-          .data(nodes)
-          .enter().append("text")
-          .text(d => d.id)
-          .attr("font-size", 12)
-          .attr("dx", 12)
-          .attr("dy", ".35em");
-
-        simulation.on("tick", () => {
-          link
-            .attr("x1", d => d.source.x)
-            .attr("y1", d => d.source.y)
-            .attr("x2", d => d.target.x)
-            .attr("y2", d => d.target.y);
-
-          node
-            .attr("cx", d => d.x)
-            .attr("cy", d => d.y);
-
-          label
-            .attr("x", d => d.x)
-            .attr("y", d => d.y);
+            if (!addedEdges.has(`${book.id}-${divisionId}`)) {
+              edgeSet.add({ from: `book-${book.id}`, to: divisionId });
+              addedEdges.add(`${book.id}-${divisionId}`);
+            }
+          }
         });
 
-        function drag(simulation) {
-          function dragstarted(event, d) {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            d.fx = d.x;
-            d.fy = d.y;
+        allNodes = nodeSet;
+        allEdges = edgeSet;
+
+        const container = document.getElementById("mynetwork");
+        const data = { nodes: allNodes, edges: allEdges };
+        const options = {
+          physics: { stabilization: false },
+          nodes: { shape: "dot", size: 20 },
+          edges: { arrows: "to", color: "#ccc" },
+          layout: { improvedLayout: true },
+          interaction: { hover: true }
+        };
+        network = new vis.Network(container, data, options);
+
+        // 노드 클릭 시 상세 페이지 이동
+        network.on("click", function (params) {
+          if (params.nodes.length > 0) {
+            const nodeId = params.nodes[0];
+            if (nodeId.startsWith("book-")) {
+              const bookId = nodeId.replace("book-", "");
+              window.location.href = `book-detail.html?id=${bookId}`;
+            }
           }
-          function dragged(event, d) {
-            d.fx = event.x;
-            d.fy = event.y;
-          }
-          function dragended(event, d) {
-            if (!event.active) simulation.alphaTarget(0);
-            d.fx = null;
-            d.fy = null;
-          }
-          return d3.drag()
-            .on("start", dragstarted)
-            .on("drag", dragged)
-            .on("end", dragended);
-        }
+        });
+
       } catch (err) {
-        console.error("맵 로드 실패:", err);
-        document.getElementById("loading").innerText = "❌ 데이터 로드 실패";
+        console.error("데이터 로드 실패:", err);
+        document.getElementById("loading").innerText = "❌ 북맵 데이터를 불러오는 중 오류가 발생했습니다.";
       }
     }
 
-    loadMap();
+    function filterBy(type) {
+      const update = {};
+      allNodes.forEach(node => {
+        update[node.id] = { hidden: !(type === "all" || node.group === type || node.group === "book") };
+      });
+      allNodes.update(Object.values(update));
+    }
+
+    loadData();
   </script>
 </body>
 </html>
