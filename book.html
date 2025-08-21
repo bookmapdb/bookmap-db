@@ -62,14 +62,16 @@
   </main>
 
   <script>
+    const API_URL = "https://script.google.com/macros/s/👉여기에_사용자_API_URL/exec";
+
     async function fetchBooks() {
-      const res = await fetch("books.json");
+      const res = await fetch(API_URL);
       return res.json();
     }
 
-    function createFilterButtons(values, containerId, key) {
+    function createFilterButtons(values, containerId) {
       const container = document.getElementById(containerId);
-      [...new Set(values.flatMap(v => v.split(/[, ]+/)))]
+      [...new Set(values.flatMap(v => (v ? v.split(/[, ]+/) : [])))]
         .filter(v => v.trim() !== "")
         .forEach(v => {
           const btn = document.createElement("button");
@@ -93,7 +95,7 @@
       document.querySelectorAll(".book-card").forEach(card => {
         let visible = true;
         for (const key in activeFilters) {
-          const value = card.dataset[key];
+          const value = card.dataset[key] || "";
           if (!activeFilters[key].some(f => value.includes(f))) {
             visible = false;
             break;
@@ -109,22 +111,22 @@
       books.forEach(book => {
         const card = document.createElement("div");
         card.className = "book-card bg-white rounded-lg shadow p-4";
-        card.dataset.category = book.category;
-        card.dataset.level = book.level;
-        card.dataset.division = book.division;
-        card.dataset.author = book.author;
-        card.dataset.theme = book.theme;
-        card.dataset.subject = book.subject;
+        card.dataset.category = book.category || "";
+        card.dataset.level = book.level || "";
+        card.dataset.division = book.division || "";
+        card.dataset.author = book.author || "";
+        card.dataset.theme = book.theme || "";
+        card.dataset.subject = book.subject || "";
 
         card.innerHTML = `
           <img src="${book.image}" alt="${book.title}" class="w-full h-48 object-cover rounded">
           <h3 class="mt-3 font-semibold text-lg">${book.title}</h3>
           <p class="text-sm text-gray-600">저자: ${book.author}</p>
-          <p class="text-sm text-gray-500">${book.publisher}</p>
+          <p class="text-sm text-gray-500">${book.publisher || ""}</p>
           <div class="mt-2 flex flex-wrap gap-1">
-            <span class="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded">${book.category}</span>
-            <span class="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded">${book.level}</span>
-            <span class="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">${book.division}</span>
+            <span class="px-2 py-0.5 bg-yellow-100 text-yellow-800 text-xs rounded">${book.category || ""}</span>
+            <span class="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs rounded">${book.level || ""}</span>
+            <span class="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">${book.division || ""}</span>
           </div>
         `;
         list.appendChild(card);
@@ -133,12 +135,12 @@
 
     fetchBooks().then(books => {
       renderBooks(books);
-      createFilterButtons(books.map(b => b.category), "category-filters", "category");
-      createFilterButtons(books.map(b => b.level), "level-filters", "level");
-      createFilterButtons(books.map(b => b.division), "division-filters", "division");
-      createFilterButtons(books.map(b => b.author), "author-filters", "author");
-      createFilterButtons(books.map(b => b.theme), "theme-filters", "theme");
-      createFilterButtons(books.map(b => b.subject), "subject-filters", "subject");
+      createFilterButtons(books.map(b => b.category), "category-filters");
+      createFilterButtons(books.map(b => b.level), "level-filters");
+      createFilterButtons(books.map(b => b.division), "division-filters");
+      createFilterButtons(books.map(b => b.author), "author-filters");
+      createFilterButtons(books.map(b => b.theme), "theme-filters");
+      createFilterButtons(books.map(b => b.subject), "subject-filters");
     });
   </script>
 </body>
