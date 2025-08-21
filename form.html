@@ -26,21 +26,25 @@
     <h2 class="text-2xl font-bold mb-6">도서 등록</h2>
 
     <form id="bookForm" class="bg-white p-6 rounded-xl shadow space-y-4">
+      <!-- 제목 -->
       <div>
         <label class="block font-medium mb-1">제목</label>
         <input type="text" id="title" name="title" required class="w-full border px-3 py-2 rounded">
       </div>
 
+      <!-- 저자 -->
       <div>
         <label class="block font-medium mb-1">저자</label>
         <input type="text" id="author" name="author" required class="w-full border px-3 py-2 rounded">
       </div>
 
+      <!-- 주제 (신규 필드) -->
       <div>
-        <label class="block font-medium mb-1">출판사</label>
-        <input type="text" id="publisher" name="publisher" required class="w-full border px-3 py-2 rounded">
+        <label class="block font-medium mb-1">주제</label>
+        <input type="text" id="theme" name="theme" placeholder="예: 철학, 문학, 신학" required class="w-full border px-3 py-2 rounded">
       </div>
 
+      <!-- 카테고리 -->
       <div>
         <label class="block font-medium mb-1">카테고리</label>
         <input type="text" id="category" name="category" placeholder="예: 소설, 철학" required class="w-full border px-3 py-2 rounded">
@@ -68,28 +72,31 @@
         </select>
       </div>
 
-      <!-- 원서제목 (선택) -->
+      <!-- 원서제목 -->
       <div>
         <label class="block font-medium mb-1">원서 제목 (선택)</label>
         <input type="text" id="original_title" name="original_title" class="w-full border px-3 py-2 rounded">
       </div>
 
-      <!-- 원서 구매링크 (선택) -->
+      <!-- 원서 구매링크 -->
       <div>
         <label class="block font-medium mb-1">원서 구매링크 (선택)</label>
         <input type="url" id="original_buy_link" name="original_buy_link" class="w-full border px-3 py-2 rounded">
       </div>
 
+      <!-- 구매 링크 -->
       <div>
         <label class="block font-medium mb-1">구매 링크</label>
         <input type="url" id="buy_link" name="buy_link" required class="w-full border px-3 py-2 rounded">
       </div>
 
+      <!-- 이미지 -->
       <div>
         <label class="block font-medium mb-1">이미지 URL</label>
         <input type="url" id="image" name="image" required class="w-full border px-3 py-2 rounded">
       </div>
 
+      <!-- 추천 이유 -->
       <div>
         <label class="block font-medium mb-1">추천 이유</label>
         <textarea id="reason" name="reason" rows="3" class="w-full border px-3 py-2 rounded"></textarea>
@@ -116,7 +123,6 @@
 
         const result = await res.json();
         alert(result.message || "등록되었습니다!");
-
         e.target.reset();
       } catch (err) {
         console.error(err);
