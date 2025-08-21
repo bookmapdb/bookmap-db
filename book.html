@@ -3,8 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BookMap — 도서 리스트</title>
+  <title>BookMap — 북맵 리스트</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .filter-btn.active {
+      background-color: #2563eb; /* Tailwind blue-600 */
+      color: white;
+      border-color: #2563eb;
+    }
+  </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
@@ -16,117 +23,133 @@
         <a href="index.html" class="hover:underline">홈</a>
         <a href="form.html" class="hover:underline">도서 등록</a>
         <a href="book.html" class="hover:underline">북맵 리스트</a>
-        <a href="map.html" class="hover:underline">북맵 관계도</a>
+        <a href="map.html" class="hover:underline">북맵 보기</a>
       </nav>
     </div>
   </header>
 
   <!-- 메인 -->
   <main class="max-w-6xl mx-auto px-6 py-10">
-    <h2 class="text-2xl font-bold mb-6">도서 리스트</h2>
+    <h2 class="text-2xl font-bold mb-6">북맵 리스트</h2>
 
-    <!-- 로딩 메시지 -->
+    <!-- 로딩 표시 -->
     <div id="loading" class="text-center text-gray-500 mb-6">
-      ⏳ 도서 리스트를 로딩중입니다. 잠시만 기다려주세요...
+      ⏳ 도서 리스트를 로딩중입니다. 잠시만 기다려주세요.
     </div>
 
-    <!-- 필터 영역 -->
-    <section class="bg-white p-4 rounded-xl shadow mb-6">
-      <div class="flex flex-wrap gap-4 items-center">
+    <!-- 필터 -->
+    <section class="bg-white p-6 rounded-xl shadow mb-8">
+      <h3 class="font-semibold mb-4">필터</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
-          <h4 class="text-sm font-medium mb-1">카테고리</h4>
+          <h4 class="text-sm font-medium mb-2">카테고리</h4>
           <div id="categoryFilter" class="flex flex-wrap gap-2"></div>
         </div>
         <div>
-          <h4 class="text-sm font-medium mb-1">단계</h4>
+          <h4 class="text-sm font-medium mb-2">단계</h4>
           <div id="levelFilter" class="flex flex-wrap gap-2"></div>
         </div>
         <div>
-          <h4 class="text-sm font-medium mb-1">도서구분</h4>
+          <h4 class="text-sm font-medium mb-2">도서구분</h4>
           <div id="divisionFilter" class="flex flex-wrap gap-2"></div>
         </div>
       </div>
     </section>
 
-    <!-- 도서 카드 리스트 -->
-    <div id="bookList" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+    <!-- 도서 카드 -->
+    <section id="bookList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></section>
   </main>
 
   <script>
-    const API_URL = "books.json";
-
+    const API_URL = "books.json"; // 로컬 JSON 테스트
+    let allBooks = [];
     let selectedCategories = new Set();
     let selectedLevels = new Set();
     let selectedDivisions = new Set();
 
     async function loadBooks() {
       const res = await fetch(API_URL);
-      const books = await res.json();
-
+      allBooks = await res.json();
       document.getElementById("loading").classList.add("hidden");
-
-      renderFilters(books);
-      renderBooks(books);
+      renderFilters();
+      renderBooks();
     }
 
-    function renderFilters(books) {
+    function renderFilters() {
       const categories = new Set();
       const levels = new Set();
-      const divisions = new Set();
+      const divisions = new Set(["국내서", "원서", "번역서"]); // 항상 표시
 
-      books.forEach(book => {
-        if (book.category) book.category.split(",").map(c => c.trim()).forEach(c => categories.add(c));
+      allBooks.forEach(book => {
+        (book.category || "").split(",").map(c => c.trim()).forEach(c => categories.add(c));
         if (book.level) levels.add(book.level);
         if (book.division) divisions.add(book.division);
       });
 
-      document.getElementById("categoryFilter").innerHTML = Array.from(categories).map(c => `
-        <button onclick="toggleFilter('category','${c}')" class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">${c}</button>
+      const categoryFilter = document.getElementById("categoryFilter");
+      categoryFilter.innerHTML = Array.from(categories).map(cat => `
+        <button onclick="toggleFilter('category','${cat}', this)" 
+          class="filter-btn px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">${cat}</button>
       `).join("");
 
-      document.getElementById("levelFilter").innerHTML = Array.from(levels).map(l => `
-        <button onclick="toggleFilter('level','${l}')" class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">${l}</button>
+      const levelFilter = document.getElementById("levelFilter");
+      levelFilter.innerHTML = Array.from(levels).map(level => `
+        <button onclick="toggleFilter('level','${level}', this)" 
+          class="filter-btn px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">${level}</button>
       `).join("");
 
-      document.getElementById("divisionFilter").innerHTML = Array.from(divisions).map(d => `
-        <button onclick="toggleFilter('division','${d}')" class="px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">${d}</button>
+      const divisionFilter = document.getElementById("divisionFilter");
+      divisionFilter.innerHTML = Array.from(divisions).map(div => `
+        <button onclick="toggleFilter('division','${div}', this)" 
+          class="filter-btn px-3 py-1 rounded-full border border-gray-300 text-sm hover:bg-blue-100">${div}</button>
       `).join("");
     }
 
-    function toggleFilter(type, value) {
+    function toggleFilter(type, value, btn) {
       let set;
       if (type === "category") set = selectedCategories;
       if (type === "level") set = selectedLevels;
       if (type === "division") set = selectedDivisions;
 
-      if (set.has(value)) set.delete(value);
-      else set.add(value);
-
-      loadBooks();
+      if (set.has(value)) {
+        set.delete(value);
+        btn.classList.remove("active");
+      } else {
+        set.add(value);
+        btn.classList.add("active");
+      }
+      renderBooks();
     }
 
-    async function renderBooks(books) {
-      const filteredBooks = books.filter(b => {
-        const cats = b.category ? b.category.split(",").map(c => c.trim()) : [];
-        return (
-          (selectedCategories.size === 0 || cats.some(c => selectedCategories.has(c))) &&
-          (selectedLevels.size === 0 || selectedLevels.has(b.level)) &&
-          (selectedDivisions.size === 0 || selectedDivisions.has(b.division))
-        );
+    function renderBooks() {
+      const list = document.getElementById("bookList");
+      list.innerHTML = "";
+
+      const filtered = allBooks.filter(book => {
+        const cats = (book.category || "").split(",").map(c => c.trim());
+        const categoryMatch = selectedCategories.size === 0 || cats.some(c => selectedCategories.has(c));
+        const levelMatch = selectedLevels.size === 0 || selectedLevels.has(book.level);
+        const divisionMatch = selectedDivisions.size === 0 || selectedDivisions.has(book.division);
+        return categoryMatch && levelMatch && divisionMatch;
       });
 
-      const container = document.getElementById("bookList");
-      container.innerHTML = filteredBooks.map(book => `
-        <div class="bg-white rounded-xl shadow p-4 hover:shadow-lg transition cursor-pointer"
-             onclick="window.location.href='book-detail.html?id=${book.id}'">
-          <img src="${book.image}" alt="${book.title}" class="w-full h-48 object-cover rounded mb-3">
-          <h3 class="font-bold text-lg mb-1">${book.title}</h3>
-          <p class="text-sm text-gray-600 mb-1">${book.author}</p>
-          <p class="text-xs text-gray-500 mb-1">카테고리: ${book.category}</p>
-          <p class="text-xs text-gray-500 mb-1">단계: ${book.level}</p>
-          <p class="text-xs text-gray-500">도서구분: ${book.division || "미정"}</p>
-        </div>
-      `).join("");
+      filtered.forEach(book => {
+        list.innerHTML += `
+          <div class="bg-white rounded-xl shadow hover:shadow-md transition p-4">
+            <img src="${book.image}" alt="${book.title}" class="w-full h-48 object-cover rounded-md mb-4">
+            <h3 class="text-lg font-bold mb-1 truncate">${book.title}</h3>
+            <p class="text-sm text-gray-600">저자: ${book.author}</p>
+            <p class="text-sm text-gray-600">카테고리: ${book.category}</p>
+            <p class="text-sm text-gray-600">단계: ${book.level}</p>
+            <p class="text-sm text-gray-600">도서구분: ${book.division}</p>
+            <a href="book-detail.html?id=${book.id}" class="inline-block mt-3 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">상세보기</a>
+          </div>
+        `;
+      });
+
+      if (filtered.length === 0) {
+        list.innerHTML = `<p class="text-gray-500 col-span-full">조건에 맞는 도서가 없습니다.</p>`;
+      }
     }
 
     loadBooks();
