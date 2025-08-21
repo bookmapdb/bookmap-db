@@ -1,175 +1,154 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>📖 BookMap — 북맵 리스트</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>📚 BookMap — 도서 리스트</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    .filter-scroll {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 8px;
-    }
-    .filter-btn {
-      @apply px-3 py-1 rounded-full border border-gray-300 text-sm cursor-pointer;
-    }
-    .filter-btn.active {
-      @apply bg-blue-600 text-white border-blue-600;
-    }
-  </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-  <!-- 헤더 -->
+  <!-- 상단 네비게이션 -->
   <header class="bg-blue-600 text-white shadow">
     <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
       <h1 class="text-xl font-bold">📚 BookMap</h1>
       <nav class="flex gap-6">
         <a href="index.html" class="hover:underline">홈</a>
         <a href="form.html" class="hover:underline">도서 등록</a>
-        <a href="book.html" class="hover:underline font-bold">북맵 리스트</a>
+        <a href="book.html" class="hover:underline">북맵 리스트</a>
         <a href="map.html" class="hover:underline">북맵 보기</a>
       </nav>
     </div>
   </header>
 
+  <!-- 메인 -->
   <main class="max-w-6xl mx-auto px-6 py-8">
-    <h2 class="text-2xl font-bold mb-4">📖 북맵 리스트</h2>
+    <h2 class="text-2xl font-bold mb-6">도서 리스트</h2>
 
-    <!-- 필터 영역 -->
-    <div class="bg-white shadow rounded-lg p-6 mb-6">
-      <div class="filter-scroll">
-        <div>
-          <h3 class="font-semibold mb-2">카테고리</h3>
-          <div id="filter-category" class="flex flex-wrap gap-2"></div>
-        </div>
-        <div>
-          <h3 class="font-semibold mb-2">단계</h3>
-          <div id="filter-stage" class="flex flex-wrap gap-2"></div>
-        </div>
-        <div>
-          <h3 class="font-semibold mb-2">도서구분</h3>
-          <div id="filter-type" class="flex flex-wrap gap-2"></div>
-        </div>
-        <div>
-          <h3 class="font-semibold mb-2">저자</h3>
-          <div id="filter-author" class="flex flex-wrap gap-2"></div>
-        </div>
-        <div>
-          <h3 class="font-semibold mb-2">주제</h3>
-          <div id="filter-subject" class="flex flex-wrap gap-2"></div>
-        </div>
-      </div>
+    <!-- 필터 UI -->
+    <div id="filters" class="grid grid-cols-5 gap-4 mb-6 text-sm"></div>
+
+    <!-- 로딩 안내 -->
+    <div id="loading" class="text-center text-gray-500 mb-6">
+      📖 도서 리스트를 로딩중입니다. 잠시만 기다려주세요...
     </div>
 
-    <!-- 도서 리스트 -->
-    <div id="book-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    <!-- 도서 카드 리스트 -->
+    <div id="bookList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
   </main>
 
   <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbwcJ2aaqVvEhxcGdJakKjsmizPBNXzScw2NVWsQ2VNammR0bncJpk68NOYcjgUW6wOf/exec";
 
-    let allData = [];
-    let filters = { category: [], stage: [], type: [], author: [], subject: [] };
+    let allBooks = [];
+    let activeFilters = { category: null, level: null, division: null, author: null, subject: null };
 
-    // ✅ 데이터 불러오기
-    fetch(API_URL)
-      .then(res => res.json())
-      .then(data => {
-        allData = data;
-        renderFilters(data);
-        renderBooks(data);
+    // ✅ 필터 UI 생성
+    function createFilters(books) {
+      const filterContainer = document.getElementById("filters");
+      filterContainer.innerHTML = "";
+
+      const categories = [...new Set(books.map(b => b.category).filter(Boolean))];
+      const levels = [...new Set(books.map(b => b.level).filter(Boolean))];
+      const divisions = [...new Set(books.map(b => b.division).filter(Boolean))];
+      const authors = [...new Set(books.map(b => b.author).filter(Boolean))];
+      const subjects = [...new Set(books.flatMap(b => (Array.isArray(b.subject) ? b.subject : (b.subject ? b.subject.split(",") : []))).map(s => s.trim()).filter(Boolean))];
+
+      const filterDefs = [
+        { key: "category", label: "카테고리", values: categories },
+        { key: "level", label: "단계", values: levels },
+        { key: "division", label: "도서구분", values: divisions },
+        { key: "author", label: "저자", values: authors },
+        { key: "subject", label: "주제", values: subjects }
+      ];
+
+      filterDefs.forEach(filter => {
+        const section = document.createElement("div");
+        section.innerHTML = `<h3 class="font-bold mb-2">${filter.label}</h3>`;
+        const btnContainer = document.createElement("div");
+        btnContainer.className = "flex flex-wrap gap-2";
+
+        filter.values.forEach(val => {
+          const btn = document.createElement("button");
+          btn.textContent = val;
+          btn.className = "px-2 py-1 rounded border text-xs bg-gray-100 hover:bg-blue-100";
+          btn.onclick = () => {
+            activeFilters[filter.key] = activeFilters[filter.key] === val ? null : val;
+            renderBooks();
+            updateFilterUI();
+          };
+          btnContainer.appendChild(btn);
+        });
+
+        section.appendChild(btnContainer);
+        filterContainer.appendChild(section);
       });
-
-    // ✅ 필터 버튼 렌더링
-    function renderFilters(data) {
-      const categories = new Set();
-      const stages = new Set();
-      const types = new Set();
-      const authors = new Set();
-      const subjects = new Set();
-
-      data.forEach(d => {
-        d.category?.split(",").forEach(c => categories.add(c.trim()));
-        if(d.stage) stages.add(d.stage);
-        if(d.type) types.add(d.type);
-        if(d.author) authors.add(d.author);
-        d.subject?.split(",").forEach(s => subjects.add(s.trim()));
-      });
-
-      createFilterButtons("filter-category", [...categories], "category");
-      createFilterButtons("filter-stage", [...stages], "stage");
-      createFilterButtons("filter-type", [...types], "type");
-      createFilterButtons("filter-author", [...authors], "author");
-      createFilterButtons("filter-subject", [...subjects], "subject");
     }
 
-    function createFilterButtons(containerId, items, key) {
-      const container = document.getElementById(containerId);
-      container.innerHTML = "";
-      items.forEach(item => {
-        const btn = document.createElement("button");
-        btn.textContent = item;
-        btn.className = "filter-btn";
-        btn.addEventListener("click", () => {
-          btn.classList.toggle("active");
-          if (filters[key].includes(item)) {
-            filters[key] = filters[key].filter(f => f !== item);
-          } else {
-            filters[key].push(item);
-          }
-          applyFilters();
-        });
-        container.appendChild(btn);
+    // ✅ 필터 UI 상태 갱신
+    function updateFilterUI() {
+      document.querySelectorAll("#filters button").forEach(btn => {
+        const parentLabel = btn.closest("div").previousSibling.textContent.trim();
+        const key = parentLabel === "카테고리" ? "category" : 
+                    parentLabel === "단계" ? "level" : 
+                    parentLabel === "도서구분" ? "division" : 
+                    parentLabel === "저자" ? "author" : "subject";
+        btn.classList.toggle("bg-blue-600", activeFilters[key] === btn.textContent);
+        btn.classList.toggle("text-white", activeFilters[key] === btn.textContent);
       });
     }
 
     // ✅ 필터 적용
-    function applyFilters() {
-      let filtered = allData.filter(d => {
-        return (!filters.category.length || filters.category.some(f => d.category?.includes(f)))
-          && (!filters.stage.length || filters.stage.includes(d.stage))
-          && (!filters.type.length || filters.type.includes(d.type))
-          && (!filters.author.length || filters.author.includes(d.author))
-          && (!filters.subject.length || filters.subject.some(f => d.subject?.includes(f)));
-      });
-      renderBooks(filtered);
+    function applyFilters(books) {
+      return books.filter(b =>
+        (!activeFilters.category || b.category === activeFilters.category) &&
+        (!activeFilters.level || b.level === activeFilters.level) &&
+        (!activeFilters.division || b.division === activeFilters.division) &&
+        (!activeFilters.author || b.author === activeFilters.author) &&
+        (!activeFilters.subject || (Array.isArray(b.subject) ? b.subject.includes(activeFilters.subject) : (b.subject || "").includes(activeFilters.subject)))
+      );
     }
 
-    // ✅ 도서 카드 렌더링
-    function renderBooks(data) {
-      const container = document.getElementById("book-list");
-      container.innerHTML = "";
+    // ✅ 도서 리스트 렌더링
+    function renderBooks() {
+      const bookList = document.getElementById("bookList");
+      const books = applyFilters(allBooks);
 
-      if(data.length === 0) {
-        container.innerHTML = `<p class="text-gray-500">검색된 도서가 없습니다.</p>`;
+      bookList.innerHTML = "";
+
+      if (books.length === 0) {
+        bookList.innerHTML = `<p class="text-gray-500">조건에 맞는 도서가 없습니다.</p>`;
         return;
       }
 
-      data.forEach(book => {
+      books.forEach(book => {
         const card = document.createElement("div");
-        card.className = "bg-white shadow rounded-lg overflow-hidden";
-
+        card.className = "bg-white rounded-lg shadow p-4 flex flex-col";
         card.innerHTML = `
-          <img src="${book.image}" alt="${book.title}" class="w-full h-48 object-cover">
-          <div class="p-4">
-            <h3 class="text-lg font-bold mb-2">${book.title}</h3>
-            <p class="text-sm text-gray-600">저자: ${book.author || "-"}</p>
-            <p class="text-sm text-gray-600">카테고리: ${book.category || "-"}</p>
-            <p class="text-sm text-gray-600">단계: ${book.stage || "-"}</p>
-            <p class="text-sm text-gray-600">도서구분: ${book.type || "-"}</p>
-            <div class="mt-3 flex gap-2">
-              <a href="detail.html?title=${encodeURIComponent(book.title)}" 
-                 class="px-3 py-1 bg-blue-600 text-white rounded text-sm">상세보기</a>
-              ${book.link ? `<a href="${book.link}" target="_blank" 
-                 class="px-3 py-1 bg-green-600 text-white rounded text-sm">구매하기</a>` : ""}
-            </div>
-          </div>
+          <img src="${book.image}" alt="${book.title}" class="w-full h-48 object-cover rounded mb-4">
+          <h3 class="font-bold text-lg mb-1">${book.title}</h3>
+          <p class="text-sm text-gray-600 mb-2">${book.author} · ${book.publisher}</p>
+          <p class="text-sm text-gray-700 flex-1">${book.description || ""}</p>
+          <a href="detail.html?title=${encodeURIComponent(book.title)}" 
+             class="mt-3 inline-block text-blue-600 hover:underline text-sm">상세보기 →</a>
         `;
-        container.appendChild(card);
+        bookList.appendChild(card);
       });
     }
+
+    // ✅ API 데이터 불러오기
+    fetch(API_URL)
+      .then(res => res.json())
+      .then(data => {
+        allBooks = data;
+        createFilters(allBooks);
+        renderBooks();
+        document.getElementById("loading").classList.add("hidden");
+      })
+      .catch(err => {
+        console.error(err);
+        document.getElementById("loading").textContent = "⚠️ 데이터를 불러오는 중 오류가 발생했습니다.";
+      });
   </script>
 </body>
 </html>
