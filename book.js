@@ -1,6 +1,7 @@
 async function loadBooks() {
-  const res = await fetch("books.json");
+  const res = await fetch("https://script.google.com/macros/s/AKfycbywJOW4dOlmDrzood3ka_jizri4K7sFqTJDPG8ibnmDrxXZgFWrFnjMEv38C5pCtjp_/exec");
   const books = await res.json();
+
 
   const categories = new Set();
   const levels = new Set(["입문", "초급", "중급", "고급", "전문"]); // 전문 추가
