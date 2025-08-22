@@ -143,7 +143,8 @@
   </main>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbwUf72FOMV7NiHQZ3YVWFRrBHtkjY8pD6OZ4oXMJ7nUB2oSMKKYyq3EX9brCBMqo9Vs/exec";
+    // Vercel 서버리스 함수 프록시 (CORS 문제 해결)
+    const API_URL = "/api/books";
     let books = [];
     let activeFilters = { category: [], level: [], division: [], author: [], subject: [] };
 
