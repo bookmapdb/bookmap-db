@@ -2,8 +2,8 @@
   "version": 2,
   "builds": [
     { "src": "*.html", "use": "@vercel/static" },
-    { "src": "*.js", "use": "@vercel/static" },
-    { "src": "*.json", "use": "@vercel/static" }
+    { "src": "*.json", "use": "@vercel/static" },
+    { "src": "pages/api/*.js", "use": "@vercel/node" }
   ],
   "routes": [
     { "src": "/", "dest": "/index.html" },
@@ -11,6 +11,7 @@
     { "src": "/book", "dest": "/book.html" },
     { "src": "/form", "dest": "/form.html" },
     { "src": "/book-detail", "dest": "/book-detail.html" },
+    { "src": "/api/(.*)", "dest": "/pages/api/$1.js" },
     { "src": "/(.*)", "dest": "/$1" }
   ]
 }
