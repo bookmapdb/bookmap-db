@@ -17,7 +17,7 @@
       const params = new URLSearchParams(window.location.search);
       const id = params.get("id");
 
-      const response = await fetch("https://script.google.com/macros/s/AKfycbywJOW4dOlmDrzood3ka_jizri4K7sFqTJDPG8ibnmDrxXZgFWrFnjMEv38C5pCtjp_/exec");
+      const response = await fetch("https://script.google.com/macros/s/AKfycbwUf72FOMV7NiHQZ3YVWFRrBHtkjY8pD6OZ4oXMJ7nUB2oSMKKYyq3EX9brCBMqo9Vs/exec");
       const books = await response.json();
       const book = books.find(b => String(b.id) === String(id));
 
