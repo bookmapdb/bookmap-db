@@ -9,8 +9,7 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const API_URL =
-    "https://script.google.com/macros/s/AKfycbwUf72FOMV7NiHQZ3YVWFRrBHtkjY8pD6OZ4oXMJ7nUB2oSMKKYyq3EX9brCBMqo9Vs/exec";
+  const API_URL ="https://script.google.com/macros/s/AKfycbwUf72FOMV7NiHQZ3YVWFRrBHtkjY8pD6OZ4oXMJ7nUB2oSMKKYyq3EX9brCBMqo9Vs/exec";
 
   try {
     const response = await fetch(API_URL, {
